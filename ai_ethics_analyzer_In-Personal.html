@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Ethics Analyzer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; background: #f5f5f5; font-size: 14px; }
+
+/* ── Page Header ── */
+.page-header {
+  background: #fff; border-bottom: 1px solid #ddd;
+  padding: 12px 0; text-align: center;
+  position: sticky; top: 0; z-index: 101;
+}
+.page-header h1 {
+  font-size: 20px; font-weight: bold; color: #222; letter-spacing: 1px;
+}
+
+/* ── Top Navigation Bar ── */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fff; border-bottom: 2px solid #ccc;
+  padding: 10px 14px;
+  position: sticky; top: 48px; z-index: 100;
+}
+.top-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.top-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.field-group { display: flex; align-items: center; gap: 4px; }
+.field-label { font-size: 14.5px; color: #333; font-weight: bold; white-space: nowrap; }
+.field-value { font-size: 14.5px; color: #d00; font-weight: normal; white-space: nowrap; }
+.separator { width: 1px; height: 26px; background: #ddd; }
+
+.status-text { font-size: 15.5px; color: #d00; font-weight: bold; margin-right: 2px; }
+
+.top-bar button {
+  padding: 6px 17px; font-size: 14.5px; cursor: pointer;
+  border: 1px solid #999; border-radius: 3px; background: #f0f0f0;
+  white-space: nowrap; font-family: inherit;
+}
+.top-bar button:hover { background: #e0e0e0; }
+.top-bar button.btn-save { background: #4CAF50; color: #fff; border-color: #388E3C; font-weight: bold; }
+.top-bar button.btn-save:hover { background: #388E3C; }
+.top-bar button.btn-print { background: #333; color: #fff; border-color: #111; font-weight: bold; }
+.top-bar button.btn-print:hover { background: #555; }
+
+.resid-select {
+  padding: 5px 8px; font-size: 14.5px; border: 1px solid #999;
+  border-radius: 3px; font-family: inherit; min-width: 140px;
+}
+
+/* ── Main Content ── */
+.main-content { padding: 16px; max-width: 1360px; margin: 0 auto; }
+
+/* ── Dilemma Card ── */
+.dilemma-card {
+  background: #fff; border: 1px solid #ccc;
+  padding: 16px 20px; border-bottom: 2px dotted #ccc;
+}
+.dilemma-card:first-child { border-top: 1px solid #ccc; }
+.dilemma-card:last-child { border-bottom: 1px solid #ccc; }
+
+.dilemma-header {
+  display: flex; gap: 16px; align-items: center;
+  margin-bottom: 12px;
+}
+.dilemma-header-left { flex: 1; }
+.dilemma-header-right { width: 200px; min-width: 200px; text-align: center; }
+.dilemma-title { font-size: 15px; font-weight: bold; color: #222; }
+
+.dilemma-body { display: flex; gap: 16px; align-items: stretch; }
+.dilemma-responses { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+
+.response-row { display: flex; align-items: flex-start; gap: 10px; }
+.response-label {
+  font-size: 13px; color: #444; font-weight: bold;
+  min-width: 90px; padding-top: 6px; white-space: nowrap;
+}
+
+.response-textarea {
+  width: 100%; border: 1px solid #bbb; padding: 8px 10px;
+  font-size: 13px; font-family: inherit; resize: vertical;
+  background: #f9f9f9; color: #555; border-radius: 2px; line-height: 1.5;
+}
+.response-textarea.resp1 { min-height: 36px; height: 36px; }
+.response-textarea.resp2 { min-height: 70px; height: 70px; }
+
+.code-area {
+  width: 200px; min-width: 200px;
+  display: flex; flex-direction: column;
+}
+.code-label {
+  font-size: 14px; font-weight: bold; color: #222;
+  text-align: center; padding-bottom: 6px;
+}
+.code-textarea {
+  width: 100%; flex: 1;
+  border: 1px solid #bbb; padding: 8px 10px;
+  font-size: 13px; font-family: inherit; resize: vertical;
+  color: #d00; text-align: center; border-radius: 2px; line-height: 1.5;
+}
+
+/* ── Loading & Toast ── */
+.loading-overlay {
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(255,255,255,0.7); z-index: 500;
+  justify-content: center; align-items: center;
+  font-size: 16px; font-weight: bold; color: #333;
+}
+.loading-overlay.show { display: flex; }
+
+.toast {
+  display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: #333; color: #fff; padding: 10px 28px; border-radius: 4px;
+  font-size: 14px; z-index: 600; opacity: 0; transition: opacity 0.3s;
+}
+.toast.show { display: block; opacity: 1; }
+
+@media print {
+  .page-header, .top-bar, .loading-overlay, .toast { display: none !important; }
+  .main-content { padding: 0; }
+  .dilemma-card { break-inside: avoid; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body>
+
+<!-- Page Header -->
+<div class="page-header"><h1>AI_Ethics_Analyzer-In Personal</h1></div>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <!-- Left: field info -->
+  <div class="top-left">
+    <div class="field-group"><span class="field-label">No.</span><span class="field-value" id="fNo">-</span></div>
+    <div class="separator"></div>
+    <div class="field-group"><span class="field-label">ResID</span><span class="field-value" id="fResID">-</span></div>
+    <div class="separator"></div>
+    <div class="field-group"><span class="field-label">Stage(N2)</span><span class="field-value" id="fStage">-</span></div>
+    <div class="separator"></div>
+    <div class="field-group"><span class="field-label">Score(N2)</span><span class="field-value" id="fScore">-</span></div>
+  </div>
+  <!-- Right: controls -->
+  <div class="top-right">
+    <span class="status-text" id="fStatus">Status</span>
+    <button class="btn-print" onclick="window.open('https://docs.google.com/document/d/123uxkezDUtXmtUvLsR7PHQzs0Q2Z6T58TRKRHBtul0o/edit?usp=sharing','_blank')">Dilemma</button>
+    <button onclick="doReload()">Reload</button>
+    <button onclick="goPrev()">&lt; Previous</button>
+    <select class="resid-select" id="resIdSelect" onchange="onSelectResID()">
+      <option value="">-- ResID --</option>
+    </select>
+    <button onclick="goNext()">Next &gt;</button>
+    <button class="btn-save" onclick="doSave()">Save</button>
+    <button class="btn-print" onclick="doPrint()">Print</button>
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay"><span>데이터 로딩 중...</span></div>
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent"></div>
+
+<script>
+// ─── Configuration ───
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwHDnTk7-SXTHjRjlc8X-MjK3bLMq8uxH-7Q5Gw5u8BsZBQHGFBSWcGACAT5XxAoiSMPA/exec';
+
+const DILEMMAS = [
+  { num: '01', label: 'AI Dilemma 01-프라이버시 보호(미동의 자료의 사용)', r1: 'E', r2: 'F', code: 'G' },
+  { num: '02', label: 'AI Dilemma 02-데이터 관리(불완전 자료의 사용)', r1: 'H', r2: 'I', code: 'J' },
+  { num: '03', label: 'AI Dilemma 03-공공성(인공지능의 공개)', r1: 'K', r2: 'L', code: 'M' },
+  { num: '04', label: 'AI Dilemma 04-침해금지(정신적, 신체적 피해 가능성)', r1: 'N', r2: 'O', code: 'P' },
+];
+
+let allData = [];
+let currentIdx = 0;
+
+// ─── Load Data via GAS ───
+async function loadData() {
+  showLoading(true);
+  try {
+    const resp = await fetch(GAS_URL);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    if (json.status !== 'ok') throw new Error(json.message || 'Unknown error');
+
+    allData = json.data;
+    if (allData.length === 0) {
+      showToast('데이터가 없습니다.');
+      showLoading(false);
+      return;
+    }
+    buildResIdDropdown();
+    renderRecord(currentIdx);
+    showToast('데이터 로드 완료 (' + allData.length + '건)');
+  } catch (e) {
+    console.error(e);
+    showToast('데이터 로드 실패: ' + e.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ─── Build Dilemma Cards (once) ───
+function buildDilemmaCards() {
+  const mc = document.getElementById('mainContent');
+  mc.innerHTML = '';
+  DILEMMAS.forEach((d, i) => {
+    const card = document.createElement('div');
+    card.className = 'dilemma-card';
+    card.innerHTML = `
+      <div class="dilemma-header">
+        <div class="dilemma-header-left"><span class="dilemma-title">${d.label}</span></div>
+        <div class="dilemma-header-right"><span class="dilemma-title">{Code}</span></div>
+      </div>
+      <div class="dilemma-body">
+        <div class="dilemma-responses">
+          <div class="response-row">
+            <span class="response-label">Response-1</span>
+            <textarea class="response-textarea resp1" id="resp1_${i}" readonly></textarea>
+          </div>
+          <div class="response-row">
+            <span class="response-label">Response-2</span>
+            <textarea class="response-textarea resp2" id="resp2_${i}" readonly></textarea>
+          </div>
+        </div>
+        <div class="code-area">
+          <textarea class="code-textarea" id="code_${i}"></textarea>
+        </div>
+      </div>`;
+    mc.appendChild(card);
+  });
+}
+
+// ─── Build ResID Dropdown ───
+function buildResIdDropdown() {
+  const sel = document.getElementById('resIdSelect');
+  sel.innerHTML = '<option value="">-- ResID 선택 --</option>';
+  allData.forEach((row, i) => {
+    // B열 값이 "Ready"인 항목은 드롭다운에서 제외
+    if (row.B && row.B.trim().toLowerCase() === 'ready') return;
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = row.B || ('No.' + row.A);
+    sel.appendChild(opt);
+  });
+}
+
+// ─── Render Record ───
+function renderRecord(idx) {
+  if (idx < 0 || idx >= allData.length) return;
+  currentIdx = idx;
+  const row = allData[idx];
+
+  // Top bar
+  document.getElementById('fNo').textContent = row.A || '-';
+  document.getElementById('fResID').textContent = row.B || '-';
+  document.getElementById('fStage').textContent = row.C || '-';
+  document.getElementById('fScore').textContent = row.D || '-';
+  document.getElementById('fStatus').textContent = row.C || 'Status';
+
+  // Dropdown selection
+  document.getElementById('resIdSelect').value = idx;
+
+  // Dilemma fields
+  DILEMMAS.forEach((d, i) => {
+    document.getElementById('resp1_' + i).value = row[d.r1] || '';
+    document.getElementById('resp2_' + i).value = row[d.r2] || '';
+    document.getElementById('code_' + i).value = row[d.code] || '';
+  });
+
+  // Auto-resize
+  document.querySelectorAll('.response-textarea, .code-textarea').forEach(autoResize);
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  const min = el.classList.contains('resp1') ? 36 : el.classList.contains('resp2') ? 70 : 110;
+  el.style.height = Math.max(el.scrollHeight, min) + 'px';
+}
+
+// ─── Navigation ───
+function goPrev() {
+  if (currentIdx > 0) renderRecord(currentIdx - 1);
+  else showToast('첫 번째 레코드입니다.');
+}
+function goNext() {
+  if (currentIdx < allData.length - 1) renderRecord(currentIdx + 1);
+  else showToast('마지막 레코드입니다.');
+}
+function onSelectResID() {
+  const val = document.getElementById('resIdSelect').value;
+  if (val !== '') renderRecord(parseInt(val));
+}
+
+// ─── Save via GAS ───
+async function doSave() {
+  showLoading(true);
+  const row = allData[currentIdx];
+  const sheetRow = row.rowNum; // 실제 스프레드시트 행 번호
+
+  const updates = [];
+  DILEMMAS.forEach((d, i) => {
+    updates.push({
+      row: sheetRow,
+      col: d.code,
+      value: document.getElementById('code_' + i).value
+    });
+  });
+
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'save', updates: updates }),
+    });
+    const json = await resp.json();
+    if (json.status === 'ok') {
+      showToast('✅ 저장 완료!');
+      // 로컬 데이터도 업데이트
+      DILEMMAS.forEach((d, i) => {
+        allData[currentIdx][d.code] = document.getElementById('code_' + i).value;
+      });
+    } else {
+      showToast('❌ 저장 실패: ' + (json.message || ''));
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('❌ 저장 실패: ' + e.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ─── Reload ───
+function doReload() {
+  const savedIdx = currentIdx;
+  loadData().then(() => {
+    if (savedIdx < allData.length) renderRecord(savedIdx);
+    else renderRecord(0);
+  });
+}
+
+// ─── Print ───
+function doPrint() { window.print(); }
+
+// ─── Utilities ───
+function showLoading(show) {
+  document.getElementById('loadingOverlay').classList.toggle('show', show);
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── Keyboard ───
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'ArrowLeft') goPrev();
+  else if (e.key === 'ArrowRight') goNext();
+  else if (e.ctrlKey && e.key === 's') { e.preventDefault(); doSave(); }
+});
+
+// ─── Init ───
+buildDilemmaCards();
+loadData();
+</script>
+</body>
+</html>
