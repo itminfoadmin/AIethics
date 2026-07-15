@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI_Ethics_Analyzer</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Malgun Gothic','맑은 고딕', Arial, sans-serif; background:#f5f5f5; color:#222; font-size:14px; }
+.page-wrap { max-width:80%; margin:0 auto; }
+
+/* ── Title ── */
+.page-title {
+  text-align:center; font-size:22px; font-weight:700;
+  padding:14px 0 6px; background:#fff; border-bottom:1px solid #ddd;
+  letter-spacing:1px;
+  position:sticky; top:0; z-index:101;
+}
+
+/* ── Top Bar ── */
+.topbar {
+  background:#fff; border-bottom:2px solid #ccc; padding:10px 16px;
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  position:sticky; top:46px; z-index:100;
+}
+.topbar-left { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.topbar-right { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+
+.topbar select {
+  padding:5px 8px; border:1px solid #999; border-radius:3px;
+  font-size:13px; background:#fff; cursor:pointer; min-width:100px;
+}
+.btn {
+  padding:6px 14px; border:none; border-radius:3px; cursor:pointer;
+  font-size:13px; font-weight:600; transition: opacity .15s;
+}
+.btn:hover { opacity:.85; }
+.btn-dark   { background:#333; color:#fff; }
+.btn-gray   { background:#888; color:#fff; }
+.btn-green  { background:#4caf50; color:#fff; }
+.btn-red    { background:#e53935; color:#fff; }
+.btn-blue   { background:#1976d2; color:#fff; }
+.btn-orange { background:#ef6c00; color:#fff; }
+
+/* ── Info bar ── */
+.info-bar {
+  background:#fff; padding:6px 16px; border-bottom:1px solid #eee;
+  font-size:12px; color:#666; display:flex; justify-content:space-between;
+  position:sticky; top:88px; z-index:99;
+}
+
+/* ── Card list ── */
+.card-list { padding:10px 16px 30px; }
+
+.card {
+  background:#fff; border:1px solid #ccc; border-radius:4px;
+  margin-bottom:14px; overflow:hidden;
+}
+.card-header {
+  display:flex; align-items:center; flex-wrap:wrap; gap:6px;
+  padding:8px 12px; border-bottom:1px solid #ddd; background:#fafafa;
+  font-size:13px;
+}
+.card-header .score-stage { font-weight:700; }
+.card-header .resid {
+  font-weight:700; margin-left:16px;
+  color:#1976d2; cursor:pointer; text-decoration:underline;
+}
+.card-header .resid:hover { color:#0d47a1; }
+
+/* ── Personal Modal ── */
+.modal-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
+  z-index:2000;
+}
+.modal-overlay.show { display:block; }
+.modal-box {
+  background:#fff; width:90%; max-width:1100px; border-radius:6px;
+  box-shadow:0 8px 32px rgba(0,0,0,.25);
+  position:absolute; left:50%; top:60px; transform:translateX(-50%);
+}
+.modal-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px; border-bottom:2px solid #ddd; background:#fafafa;
+  border-radius:6px 6px 0 0;
+  cursor:grab; user-select:none;
+}
+.modal-header:active { cursor:grabbing; }
+.modal-header-left { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.modal-field-label { font-size:14px; font-weight:700; color:#333; }
+.modal-field-value { font-size:14px; font-weight:400; color:#d00; margin-left:4px; }
+.modal-sep { width:1px; height:22px; background:#ccc; }
+.modal-close-btn {
+  background:#e53935; color:#fff; border:none; border-radius:3px;
+  padding:6px 16px; font-size:13px; font-weight:700; cursor:pointer;
+}
+.modal-close-btn:hover { background:#c62828; }
+.modal-body { padding:0; max-height:70vh; overflow-y:auto; }
+
+/* ── Dilemma Docs Modal ── */
+.docs-modal-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
+  z-index:2000;
+}
+.docs-modal-overlay.show { display:block; }
+.docs-modal-box {
+  background:#fff; width:85%; max-width:960px; height:80vh; border-radius:6px;
+  box-shadow:0 8px 32px rgba(0,0,0,.25);
+  position:absolute; left:50%; top:50px; transform:translateX(-50%);
+  display:flex; flex-direction:column;
+}
+.docs-modal-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 20px; background:#333; color:#fff;
+  border-radius:6px 6px 0 0;
+  cursor:grab; user-select:none;
+}
+.docs-modal-header:active { cursor:grabbing; }
+.docs-modal-title { font-size:15px; font-weight:700; }
+.docs-modal-iframe { flex:1; border:none; border-radius:0 0 6px 6px; }
+
+.modal-dilemma {
+  padding:16px 20px; border-bottom:1px dashed #ccc;
+}
+.modal-dilemma:last-child { border-bottom:none; }
+.modal-dilemma-header {
+  display:flex; align-items:center; gap:16px; margin-bottom:10px;
+}
+.modal-dilemma-title { font-size:14px; font-weight:700; color:#222; flex:1; }
+.modal-dilemma-code-label { font-size:14px; font-weight:700; color:#222; width:200px; text-align:center; }
+.modal-dilemma-body { display:flex; gap:16px; align-items:stretch; }
+.modal-resp-area { flex:1; display:flex; flex-direction:column; gap:8px; }
+.modal-resp-row { display:flex; align-items:flex-start; gap:8px; }
+.modal-resp-label { min-width:85px; font-size:13px; font-weight:600; color:#555; padding-top:6px; }
+.modal-resp-text {
+  flex:1; border:1px solid #bbb; border-radius:3px; padding:6px 8px;
+  font-size:13px; background:#f9f9f9; color:#555; line-height:1.5;
+  min-height:36px; resize:vertical; font-family:inherit;
+}
+.modal-resp-text.r2 { min-height:60px; }
+.modal-code-area { width:200px; min-width:200px; display:flex; flex-direction:column; }
+.modal-code-textarea {
+  width:100%; flex:1; border:1px solid #bbb; border-radius:3px;
+  padding:6px 8px; font-size:13px; font-family:inherit; resize:vertical;
+  color:#d00; text-align:center; line-height:1.5;
+}
+.modal-code-textarea:focus { outline:2px solid #1976d2; }
+.modal-save-bar {
+  display:flex; justify-content:flex-end; gap:8px;
+  padding:12px 20px; border-top:1px solid #ddd; background:#fafafa;
+  border-radius:0 0 6px 6px;
+}
+.card-header .resp-label {
+  display:none;
+}
+.card-header .code-label {
+  margin-left:auto; font-weight:700; color:#333; cursor:default;
+  width:252px; text-align:center; flex-shrink:0;
+}
+
+.card-body {
+  display:flex; gap:0; min-height:0;
+}
+.card-responses { flex:1; min-width:0; padding:6px 10px; overflow:hidden; }
+.card-code-area {
+  width:252px; min-width:210px; max-width:252px; border-left:1px solid #ddd;
+  padding:6px 8px; display:flex; flex-direction:column; gap:4px;
+  background:#fafafa; flex-shrink:0;
+}
+.card-code-area .code-textarea {
+  flex:1;
+}
+
+.resp-row { display:flex; align-items:flex-start; margin-bottom:6px; }
+.resp-label-side {
+  width:80px; min-width:80px; font-weight:600; font-size:12px;
+  padding-top:6px; color:#555;
+}
+.resp-text {
+  flex:1; min-width:0; border:1px solid #bbb; border-radius:3px; padding:6px 8px;
+  min-height:42px; font-size:12.5px; line-height:1.5;
+  background:#fff; white-space:pre-wrap; word-break:break-all;
+  overflow-y:auto; max-height:200px;
+}
+
+/* Code textareas */
+.code-group-label {
+  font-size:11px; font-weight:600; color:#e53935; margin-top:2px;
+}
+.code-textarea {
+  width:100%; border:1px solid #bbb; border-radius:3px;
+  padding:4px 6px; font-size:11.5px; line-height:1.4;
+  resize:vertical; min-height:32px; font-family:inherit;
+}
+.code-textarea:focus { outline:2px solid #1976d2; border-color:#1976d2; }
+
+/* ── Status ── */
+.status-toast {
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  background:#333; color:#fff; padding:10px 24px; border-radius:6px;
+  font-size:13px; z-index:999; display:none; box-shadow:0 2px 12px rgba(0,0,0,.3);
+}
+.status-toast.show { display:block; }
+
+/* ── Loading ── */
+.loading-overlay {
+  position:fixed; inset:0; background:rgba(255,255,255,.7);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000; font-size:16px; font-weight:600;
+}
+.loading-overlay.hidden { display:none; }
+
+/* ── Print ── */
+@media print {
+  .topbar, .topbar-right, .info-bar { display:none !important; }
+  .card { break-inside:avoid; }
+  .code-textarea { border:1px solid #999; }
+  body { background:#fff; }
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">데이터 로딩 중...</div>
+
+<!-- Title -->
+<div class="page-title">AI_Ethics_Analyzer</div>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-left">
+    <select id="selDilemma">
+      <option value="1" selected>Dilemma-01</option>
+      <option value="2">Dilemma-02</option>
+      <option value="3">Dilemma-03</option>
+      <option value="4">Dilemma-04</option>
+    </select>
+    <select id="selStage">
+      <option value="전체">Stage</option>
+      <option value="전체">전체 (All)</option>
+    </select>
+    <button class="btn btn-dark" id="btnSort">N2_Score (ASC)</button>
+    <button class="btn btn-dark" onclick="openDocsModal()">Dilemma</button>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-gray" id="btnReload" onclick="loadData()">Reload</button>
+    <button class="btn btn-green" id="btnSave" onclick="saveAll()">Save</button>
+    <button class="btn btn-red" onclick="window.print()">Print</button>
+  </div>
+</div>
+
+<!-- Info bar -->
+<div class="info-bar">
+  <span id="infoLeft">필터: Dilemma-01 | 정렬: N2_Score ASC</span>
+  <span id="infoRight">총 0건</span>
+</div>
+
+<!-- Cards -->
+<div class="card-list" id="cardList"></div>
+
+<!-- Status toast -->
+<div class="status-toast" id="toast"></div>
+
+</div><!-- /.page-wrap -->
+
+<!-- Personal Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <span><span class="modal-field-label">No.</span><span class="modal-field-value" id="mNo">-</span></span>
+        <div class="modal-sep"></div>
+        <span><span class="modal-field-label">ResID</span> <span class="modal-field-value" id="mResID">-</span></span>
+        <div class="modal-sep"></div>
+        <span><span class="modal-field-label">Stage(N2)</span> <span class="modal-field-value" id="mStage">-</span></span>
+        <div class="modal-sep"></div>
+        <span><span class="modal-field-label">Score(N2)</span> <span class="modal-field-value" id="mScore">-</span></span>
+      </div>
+      <button class="modal-close-btn" onclick="closeModal()">닫기 ✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-save-bar">
+      <button class="btn btn-green" onclick="saveModal()">Save</button>
+      <button class="btn btn-gray" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Dilemma Docs Modal -->
+<div class="docs-modal-overlay" id="docsModalOverlay" onclick="if(event.target===this)closeDocsModal()">
+  <div class="docs-modal-box">
+    <div class="docs-modal-header">
+      <span class="docs-modal-title">Dilemma 문서</span>
+      <button class="modal-close-btn" onclick="closeDocsModal()">닫기 ✕</button>
+    </div>
+    <iframe class="docs-modal-iframe" id="docsIframe" src=""></iframe>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────
+// ★ 설정: GAS 웹앱 URL을 여기에 붙여넣으세요
+// ──────────────────────────────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw8vivFydqIDIsWIx6OIOIVpMyxDSHyDrRMs3IoPYwe4jTe1AH-7HOvErLa0Eya6u0CEA/exec';
+
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSTxvYoHn5_2scfnTs1XxBrOaPyOGWPSx3r_0Wb9ZWVA8-L3kDPfhzbRLXhWX4B9nvVld5wrxdAMSDD/pub?gid=1846865655&single=true&output=csv';
+
+const HEADER_ROWS = 3; // CSV에서 건너뛸 헤더 행 수
+
+let allData = [];       // 파싱된 전체 데이터
+let sortAsc = true;       // 정렬 방향 (기본: 오름차순)
+let stageSet = new Set(); // Stage 고유값
+
+// ── Dilemma 매핑 (1-based index) ──
+// Dilemma 1: E(4), F(5), G(6)   → idx 4,5,6
+// Dilemma 2: H(7), I(8), J(9)   → idx 7,8,9
+// Dilemma 3: K(10),L(11),M(12)  → idx 10,11,12
+// Dilemma 4: N(13),O(14),P(15)  → idx 13,14,15
+const DILEMMA_MAP = {
+  '1': { r1: 4, r2: 5, code: 6,  codeCol:'G' },
+  '2': { r1: 7, r2: 8, code: 9,  codeCol:'J' },
+  '3': { r1:10, r2:11, code:12, codeCol:'M' },
+  '4': { r1:13, r2:14, code:15, codeCol:'P' },
+};
+
+// ── CSV 파싱 ──
+function parseCSV(text) {
+  const rows = [];
+  let current = '';
+  let inQuotes = false;
+  const lines = [];
+
+  // 줄바꿈 처리 (따옴표 안의 줄바꿈 허용)
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (inQuotes && text[i+1] === '"') {
+        current += '"'; i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      if (ch === '\r' && text[i+1] === '\n') i++;
+      lines.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  if (current) lines.push(current);
+
+  // 각 줄을 필드로 분리
+  for (const line of lines) {
+    const fields = [];
+    let field = '';
+    let q = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (q && line[i+1] === '"') { field += '"'; i++; }
+        else q = !q;
+      } else if (ch === ',' && !q) {
+        fields.push(field); field = '';
+      } else {
+        field += ch;
+      }
+    }
+    fields.push(field);
+    rows.push(fields);
+  }
+  return rows;
+}
+
+// ── 데이터 로드 (GAS 우선, CSV 대체) ──
+async function loadData() {
+  showLoading(true);
+  try {
+    // GAS 우선 시도 (셀 경계를 정확히 처리)
+    if (GAS_URL && GAS_URL !== 'YOUR_GAS_WEB_APP_URL_HERE') {
+      const ok = await loadFromGAS();
+      if (ok) { showLoading(false); return; }
+    }
+    // CSV 대체
+    await loadFromCSV();
+  } catch(err) {
+    console.error(err);
+    showToast('로드 실패: ' + err.message, true);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ── GAS에서 읽기 (기본) ──
+async function loadFromGAS() {
+  try {
+    const resp = await fetch(GAS_URL);
+    const json = await resp.json();
+    if (json.status !== 'ok') throw new Error(json.message);
+
+    allData = [];
+    stageSet = new Set();
+
+    json.data.forEach(r => {
+      // ResID가 "Ready"인 행 제외
+      if (r.B && r.B.trim() === 'Ready') return;
+
+      const row = {
+        rowNum: r.rowNum,
+        raw: [r.A,r.B,r.C,r.D,r.E,r.F,r.G,r.H,r.I,r.J,r.K,r.L,r.M,r.N,r.O,r.P],
+        A: r.A, B: r.B, C: r.C, D: r.D,
+      };
+      allData.push(row);
+      if (row.C) stageSet.add(row.C);
+    });
+
+    populateStageDropdown();
+    renderCards();
+    showToast('데이터 로드 완료: ' + allData.length + '건');
+    return true;
+  } catch(e) {
+    console.error('GAS 로드 실패:', e);
+    return false;
+  }
+}
+
+// ── CSV에서 읽기 (대체) ──
+async function loadFromCSV() {
+  const resp = await fetch(CSV_URL);
+  if (!resp.ok) throw new Error('CSV fetch 실패: ' + resp.status);
+  const text = await resp.text();
+  const rows = parseCSV(text);
+
+  const dataRows = rows.slice(HEADER_ROWS);
+
+  allData = [];
+  stageSet = new Set();
+
+  dataRows.forEach((cols, idx) => {
+    if (!cols[0] || cols[0].trim() === '') return;
+    const resId = (cols[1] || '').trim();
+    // ResID가 "Ready"인 행 제외
+    if (resId === 'Ready') return;
+
+    const row = {
+      rowNum: HEADER_ROWS + 1 + idx,
+      raw: cols,
+      A: (cols[0] || '').trim(),
+      B: resId,
+      C: (cols[2] || '').trim(),
+      D: (cols[3] || '').trim(),
+    };
+    allData.push(row);
+    if (row.C) stageSet.add(row.C);
+  });
+
+  populateStageDropdown();
+  renderCards();
+  showToast('CSV 데이터 로드 완료: ' + allData.length + '건');
+}
+
+// ── Stage 드롭다운 채우기 ──
+function populateStageDropdown() {
+  const sel = document.getElementById('selStage');
+  // 기존 옵션 유지 (전체 + All)
+  while (sel.options.length > 2) sel.remove(2);
+
+  const sorted = Array.from(stageSet)
+    .filter(s => s !== 'IRD' && s !== '-' && s.trim() !== '')
+    .sort((a,b) => {
+      const na = parseFloat(a.replace(/[^0-9.]/g,'')) || 0;
+      const nb = parseFloat(b.replace(/[^0-9.]/g,'')) || 0;
+      return na - nb;
+    });
+  sorted.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    sel.appendChild(opt);
+  });
+}
+
+// ── 필터 + 정렬된 데이터 얻기 ──
+function getFilteredData() {
+  const dil = document.getElementById('selDilemma').value;
+  const stg = document.getElementById('selStage').value;
+
+  let filtered = allData.slice();
+
+  // Stage 필터
+  if (stg !== '전체') {
+    filtered = filtered.filter(r => r.C === stg);
+  }
+
+  // 선택된 Dilemma의 Response가 빈 값이거나 "Invalid response data"인 행 제외
+  const INVALID = 'invalid response data';
+  const dm = DILEMMA_MAP[dil];
+  if (dm) {
+    filtered = filtered.filter(r => {
+      const r1 = getCellVal(r, dm.r1);
+      const r2 = getCellVal(r, dm.r2);
+      const r1empty = r1 === '' || r1.toLowerCase() === INVALID;
+      const r2empty = r2 === '' || r2.toLowerCase() === INVALID;
+      return !r1empty || !r2empty;
+    });
+  }
+
+  // 정렬 (N2_Score)
+  filtered.sort((a,b) => {
+    const va = parseFloat(a.D) || 0;
+    const vb = parseFloat(b.D) || 0;
+    return sortAsc ? va - vb : vb - va;
+  });
+
+  return filtered;
+}
+
+// ── 카드 렌더링 ──
+function renderCards() {
+  const data = getFilteredData();
+  const dil = document.getElementById('selDilemma').value;
+  const stg = document.getElementById('selStage').value;
+  const container = document.getElementById('cardList');
+  container.innerHTML = '';
+
+  // Info 업데이트
+  const dilLabel = dil === '전체' ? '전체' : 'Dilemma-0' + dil;
+  document.getElementById('infoLeft').textContent =
+    '필터: Dilemma=' + dilLabel + ', Stage=' + stg + ' | 정렬: N2_Score ' + (sortAsc?'ASC':'DESC');
+  document.getElementById('infoRight').textContent = '총 ' + data.length + '건';
+
+  if (data.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">해당 조건의 데이터가 없습니다.</div>';
+    return;
+  }
+
+  data.forEach(row => {
+    container.appendChild(buildCard(row, dil));
+  });
+}
+
+// ── 개별 카드 생성 ──
+function buildCard(row, dilemma) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.rownum = row.rowNum;
+
+  // ── Header ──
+  const header = document.createElement('div');
+  header.className = 'card-header';
+
+  const scoreStage = document.createElement('span');
+  scoreStage.className = 'score-stage';
+  scoreStage.textContent = 'N2_Score(Stage) : ' + row.D + '(' + row.C + ')';
+
+  const resid = document.createElement('span');
+  resid.className = 'resid';
+  resid.textContent = 'ResID : ' + row.B;
+  resid.addEventListener('click', () => openModal(row));
+
+  const codeLabel = document.createElement('span');
+  codeLabel.className = 'code-label';
+  codeLabel.textContent = '{Code}';
+
+  header.append(scoreStage, resid, codeLabel);
+  card.appendChild(header);
+
+  // ── Body ──
+  const body = document.createElement('div');
+  body.className = 'card-body';
+
+  // Left: Responses
+  const respArea = document.createElement('div');
+  respArea.className = 'card-responses';
+
+  const r1Text = getResponseText(row, dilemma, 'r1');
+  const r2Text = getResponseText(row, dilemma, 'r2');
+
+  respArea.appendChild(makeRespRow('Response-1', r1Text));
+  respArea.appendChild(makeRespRow('Response-2', r2Text));
+
+  // Right: Code textarea(s)
+  const codeArea = document.createElement('div');
+  codeArea.className = 'card-code-area';
+
+  if (dilemma === '전체') {
+    // 4개 Code 각각 표시
+    ['1','2','3','4'].forEach(d => {
+      const lbl = document.createElement('div');
+      lbl.className = 'code-group-label';
+      lbl.textContent = 'Dilemma-' + d + ' Code';
+
+      const ta = document.createElement('textarea');
+      ta.className = 'code-textarea';
+      ta.dataset.rownum = row.rowNum;
+      ta.dataset.dilemma = d;
+      ta.value = getCellVal(row, DILEMMA_MAP[d].code);
+      ta.rows = 2;
+
+      codeArea.append(lbl, ta);
+    });
+  } else {
+    const ta = document.createElement('textarea');
+    ta.className = 'code-textarea';
+    ta.dataset.rownum = row.rowNum;
+    ta.dataset.dilemma = dilemma;
+    ta.value = getCellVal(row, DILEMMA_MAP[dilemma].code);
+    ta.rows = 4;
+    codeArea.appendChild(ta);
+  }
+
+  body.append(respArea, codeArea);
+  card.appendChild(body);
+
+  return card;
+}
+
+// ── 응답 텍스트 구성 ──
+function getResponseText(row, dilemma, type) {
+  if (dilemma === '전체') {
+    return ['1','2','3','4'].map(d => {
+      const idx = DILEMMA_MAP[d][type];
+      const val = getCellVal(row, idx);
+      return 'Dilemma-' + d + ': ' + val;
+    }).join('\n');
+  } else {
+    return getCellVal(row, DILEMMA_MAP[dilemma][type]);
+  }
+}
+
+// ── 셀 값 가져오기 ──
+function getCellVal(row, colIdx) {
+  if (!row.raw || colIdx >= row.raw.length) return '';
+  return (row.raw[colIdx] || '').trim();
+}
+
+// ── Response 행 생성 ──
+function makeRespRow(label, text) {
+  const div = document.createElement('div');
+  div.className = 'resp-row';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'resp-label-side';
+  lbl.textContent = label;
+
+  const txt = document.createElement('div');
+  txt.className = 'resp-text';
+  txt.textContent = text;
+
+  div.append(lbl, txt);
+  return div;
+}
+
+// ── 저장 ──
+async function saveAll() {
+  if (GAS_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
+    showToast('GAS URL을 먼저 설정해주세요!', true);
+    return;
+  }
+
+  const textareas = document.querySelectorAll('.code-textarea');
+  if (textareas.length === 0) {
+    showToast('저장할 항목이 없습니다.', true);
+    return;
+  }
+
+  const updates = [];
+  textareas.forEach(ta => {
+    const rowNum = parseInt(ta.dataset.rownum);
+    const dil = ta.dataset.dilemma;
+    const codeCol = DILEMMA_MAP[dil].codeCol;
+    updates.push({
+      row: rowNum,
+      col: codeCol,
+      value: ta.value
+    });
+  });
+
+  showLoading(true);
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'save', updates: updates }),
+      redirect: 'follow'
+    });
+    const json = await resp.json();
+    if (json.status === 'ok') {
+      showToast('저장 완료: ' + json.message);
+    } else {
+      throw new Error(json.message);
+    }
+  } catch(err) {
+    console.error(err);
+    showToast('저장 실패: ' + err.message, true);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ── 정렬 토글 ──
+document.getElementById('btnSort').addEventListener('click', function() {
+  sortAsc = !sortAsc;
+  this.textContent = 'N2_Score (' + (sortAsc ? 'ASC' : 'DESC') + ')';
+  renderCards();
+});
+
+// ── 드롭다운 변경 ──
+document.getElementById('selDilemma').addEventListener('change', renderCards);
+document.getElementById('selStage').addEventListener('change', renderCards);
+
+// ── Dilemma 버튼: Google Docs 새 창 (onclick으로 처리) ──
+
+// ── UI 유틸 ──
+function showLoading(show) {
+  document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+}
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isError ? '#c62828' : '#333';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Personal Modal ──
+const DILEMMA_LABELS = [
+  'AI Dilemma 01 - 프라이버시 보호 (미동의 자료의 사용)',
+  'AI Dilemma 02 - 데이터 관리 (불완전 자료의 사용)',
+  'AI Dilemma 03 - 공공성 (인공지능의 공개)',
+  'AI Dilemma 04 - 침해금지 (정신적, 신체적 피해 가능성)',
+];
+let modalRow = null;
+
+function openModal(row) {
+  modalRow = row;
+  document.getElementById('mNo').textContent = row.A || '-';
+  document.getElementById('mResID').textContent = row.B || '-';
+  document.getElementById('mStage').textContent = row.C || '-';
+  document.getElementById('mScore').textContent = row.D || '-';
+
+  const body = document.getElementById('modalBody');
+  body.innerHTML = '';
+
+  ['1','2','3','4'].forEach((d, i) => {
+    const dm = DILEMMA_MAP[d];
+    const r1 = getCellVal(row, dm.r1);
+    const r2 = getCellVal(row, dm.r2);
+    const code = getCellVal(row, dm.code);
+
+    const section = document.createElement('div');
+    section.className = 'modal-dilemma';
+    section.innerHTML = `
+      <div class="modal-dilemma-header">
+        <span class="modal-dilemma-title">${DILEMMA_LABELS[i]}</span>
+        <span class="modal-dilemma-code-label">{Code}</span>
+      </div>
+      <div class="modal-dilemma-body">
+        <div class="modal-resp-area">
+          <div class="modal-resp-row">
+            <span class="modal-resp-label">Response-1</span>
+            <textarea class="modal-resp-text" readonly>${escHtml(r1)}</textarea>
+          </div>
+          <div class="modal-resp-row">
+            <span class="modal-resp-label">Response-2</span>
+            <textarea class="modal-resp-text r2" readonly>${escHtml(r2)}</textarea>
+          </div>
+        </div>
+        <div class="modal-code-area">
+          <textarea class="modal-code-textarea" data-rownum="${row.rowNum}" data-dilemma="${d}">${escHtml(code)}</textarea>
+        </div>
+      </div>`;
+    body.appendChild(section);
+  });
+
+  // Auto-resize textareas
+  body.querySelectorAll('textarea').forEach(ta => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(ta.scrollHeight, ta.classList.contains('r2') ? 60 : 36) + 'px';
+  });
+
+  document.getElementById('modalOverlay').classList.add('show');
+  // 위치 초기화
+  const box = document.querySelector('#modalOverlay .modal-box');
+  box.style.left = '50%';
+  box.style.top = '60px';
+  box.style.transform = 'translateX(-50%)';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+  modalRow = null;
+}
+
+async function saveModal() {
+  const textareas = document.querySelectorAll('.modal-code-textarea');
+  const updates = [];
+  textareas.forEach(ta => {
+    updates.push({
+      row: parseInt(ta.dataset.rownum),
+      col: DILEMMA_MAP[ta.dataset.dilemma].codeCol,
+      value: ta.value
+    });
+  });
+
+  showLoading(true);
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'save', updates: updates }),
+      redirect: 'follow'
+    });
+    const json = await resp.json();
+    if (json.status === 'ok') {
+      showToast('저장 완료: ' + json.message);
+      // 로컬 데이터도 업데이트
+      if (modalRow) {
+        ['1','2','3','4'].forEach((d, i) => {
+          const ta = textareas[i];
+          modalRow.raw[DILEMMA_MAP[d].code] = ta.value;
+        });
+        renderCards();
+      }
+    } else {
+      throw new Error(json.message);
+    }
+  } catch(err) {
+    showToast('저장 실패: ' + err.message, true);
+  } finally {
+    showLoading(false);
+  }
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Dilemma Docs Modal ──
+const DOCS_URL = 'https://docs.google.com/document/d/123uxkezDUtXmtUvLsR7PHQzs0Q2Z6T58TRKRHBtul0o/preview';
+
+function openDocsModal() {
+  document.getElementById('docsIframe').src = DOCS_URL;
+  document.getElementById('docsModalOverlay').classList.add('show');
+  // 위치 초기화
+  const box = document.querySelector('.docs-modal-box');
+  box.style.left = '50%';
+  box.style.top = '50px';
+  box.style.transform = 'translateX(-50%)';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDocsModal() {
+  document.getElementById('docsModalOverlay').classList.remove('show');
+  document.getElementById('docsIframe').src = '';
+  document.body.style.overflow = '';
+}
+
+// ── 모달 드래그 앤 드롭 ──
+function makeDraggable(headerEl, boxEl) {
+  let isDragging = false, startX, startY, origX, origY;
+
+  headerEl.addEventListener('mousedown', (e) => {
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+
+    // transform 제거하고 현재 위치를 px로 계산
+    const rect = boxEl.getBoundingClientRect();
+    boxEl.style.transform = 'none';
+    boxEl.style.left = rect.left + 'px';
+    boxEl.style.top = rect.top + 'px';
+    origX = rect.left;
+    origY = rect.top;
+
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    boxEl.style.left = (origX + dx) + 'px';
+    boxEl.style.top = (origY + dy) + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+}
+
+// 모든 모달에 드래그 적용
+window.addEventListener('DOMContentLoaded', () => {
+  // Personal 모달
+  const mHeader = document.querySelector('#modalOverlay .modal-header');
+  const mBox = document.querySelector('#modalOverlay .modal-box');
+  if (mHeader && mBox) makeDraggable(mHeader, mBox);
+
+  // Dilemma Docs 모달
+  const dHeader = document.querySelector('#docsModalOverlay .docs-modal-header');
+  const dBox = document.querySelector('#docsModalOverlay .docs-modal-box');
+  if (dHeader && dBox) makeDraggable(dHeader, dBox);
+});
+
+// ── 초기 로드 ──
+window.addEventListener('DOMContentLoaded', loadData);
+</script>
+</body>
+</html>
