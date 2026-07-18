@@ -14,22 +14,24 @@ body {
 }
 .page-wrap { max-width:80%; margin:0 auto; }
 
-/* ── Title ── */
+/* ── Fixed Header Group ── */
+.fixed-header {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+}
+
 .page-title {
   text-align:center; font-size:20px; font-weight:700;
   padding:16px 0 10px; background:linear-gradient(135deg,#1e293b,#334155);
   color:#fff; letter-spacing:2px;
-  position:sticky; top:0; z-index:101;
   border-bottom:none;
 }
 
-/* ── Top Bar ── */
 .topbar {
   background:#fff; border-bottom:1px solid #e2e8f0; padding:10px 20px;
   display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
-  position:sticky; top:48px; z-index:100;
   box-shadow:0 1px 3px rgba(0,0,0,.06);
 }
+.topbar-inner { max-width:80%; margin:0 auto; display:flex; align-items:center; justify-content:space-between; width:100%; flex-wrap:wrap; gap:8px; }
 .topbar-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .topbar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 
@@ -52,13 +54,77 @@ body {
 .btn-gray   { background:#64748b; color:#fff; }
 .btn-green  { background:#16a34a; color:#fff; }
 .btn-red    { background:#dc2626; color:#fff; }
+.btn-blue   { background:#2563eb; color:#fff; }
 
-/* ── Info bar ── */
+/* ── Analysis Modal ── */
+.analysis-overlay {
+  display:none; position:fixed; inset:0; background:rgba(15,23,42,.55);
+  z-index:2000; backdrop-filter:blur(2px);
+}
+.analysis-overlay.show { display:block; }
+.analysis-box {
+  background:#fff; width:92%; max-width:1200px; height:85vh; border-radius:10px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  position:absolute; left:50%; top:40px; transform:translateX(-50%);
+  display:flex; flex-direction:column;
+}
+.analysis-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 24px; background:linear-gradient(135deg,#1e293b,#334155);
+  border-radius:10px 10px 0 0; color:#fff;
+  cursor:grab; user-select:none; flex-shrink:0;
+}
+.analysis-header:active { cursor:grabbing; }
+.analysis-title { font-size:15px; font-weight:700; letter-spacing:.5px; }
+.analysis-subtitle { font-size:12px; color:#94a3b8; margin-left:12px; font-weight:400; }
+.analysis-body { padding:24px; flex:1; overflow-y:auto; border-radius:0 0 10px 10px; }
+.analysis-charts { display:flex; flex-direction:column; gap:28px; }
+.analysis-chart-section { }
+.analysis-chart-title {
+  font-size:14px; font-weight:700; color:#1e293b; margin-bottom:12px;
+  padding-bottom:6px; border-bottom:2px solid #e2e8f0;
+}
+.analysis-chart-wrap {
+  background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;
+  padding:16px; overflow-x:auto;
+}
+.analysis-summary {
+  margin-top:24px; background:#f8fafc; border:1px solid #e2e8f0;
+  border-radius:8px; overflow-x:auto;
+}
+.analysis-summary table {
+  width:100%; border-collapse:collapse; font-size:13px;
+}
+.analysis-summary th {
+  background:#1e293b; color:#fff; padding:8px 12px; text-align:center;
+  font-size:12px; font-weight:600; letter-spacing:.3px;
+}
+.analysis-summary td {
+  padding:7px 12px; border-bottom:1px solid #e2e8f0; text-align:center;
+  color:#475569;
+}
+.analysis-summary tr:hover td { background:#eef2ff; }
+
+/* Analysis loading */
+.analysis-loading {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:60px 20px; gap:16px; color:#475569; font-size:15px; font-weight:600;
+}
+.analysis-spinner {
+  width:40px; height:40px; border:4px solid #e2e8f0;
+  border-top-color:#3b82f6; border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
 .info-bar {
   background:#f8fafc; padding:6px 20px; border-bottom:1px solid #e2e8f0;
   font-size:12px; color:#94a3b8; display:flex; justify-content:space-between;
-  position:sticky; top:90px; z-index:99;
 }
+.info-bar-inner { max-width:80%; margin:0 auto; display:flex; justify-content:space-between; width:100%; }
+
+/* ── Header spacer ── */
+.header-spacer { height:120px; }
 
 /* ── Card list ── */
 .card-list { padding:16px 20px 40px; }
@@ -76,30 +142,48 @@ body {
   padding:10px 16px; border-bottom:1px solid #f1f5f9; background:#f8fafc;
   font-size:13px;
 }
-.card-header .score-stage { font-weight:600; color:#334155; }
 .card-header .resid {
-  font-weight:600; margin-left:20px;
-  color:#3b82f6; cursor:pointer; text-decoration:none;
-  border-bottom:1px dashed #93c5fd;
-  transition:color .15s;
+  font-weight:700; color:#1e293b;
+  margin-right:6px;
 }
-.card-header .resid:hover { color:#1d4ed8; border-bottom-color:#1d4ed8; }
+.card-header .btn-modal {
+  padding:3px 10px; border:1px solid #cbd5e1; border-radius:5px;
+  background:#fff; color:#3b82f6; font-size:11px; font-weight:600;
+  cursor:pointer; font-family:inherit; transition:all .15s;
+  white-space:nowrap;
+}
+.card-header .btn-modal:hover { background:#3b82f6; color:#fff; border-color:#3b82f6; }
+.card-header .meta-tag {
+  font-weight:600; color:#475569; font-size:12px;
+  background:#e2e8f0; padding:2px 8px; border-radius:4px;
+}
+.card-header .meta-tag .meta-label { color:#94a3b8; font-weight:500; margin-right:3px; }
 
-.card-header .resp-label { display:none; }
-.card-header .code-label {
+.card-header .kso-label {
   margin-left:auto; font-weight:600; color:#64748b; cursor:default;
-  width:252px; text-align:center; flex-shrink:0; font-size:12px;
+  width:400px; text-align:center; flex-shrink:0; font-size:11px;
   letter-spacing:.5px;
 }
 
 .card-body { display:flex; gap:0; min-height:0; }
 .card-responses { flex:1; min-width:0; padding:10px 14px; overflow:hidden; }
-.card-code-area {
-  width:252px; min-width:210px; max-width:252px; border-left:1px solid #f1f5f9;
-  padding:8px 10px; display:flex; flex-direction:column; gap:4px;
-  background:#fafbfc; flex-shrink:0;
+.card-kso-area {
+  width:400px; min-width:340px; max-width:400px; border-left:1px solid #f1f5f9;
+  padding:8px 16px; display:flex; flex-direction:column; gap:6px;
+  background:#fafbfc; flex-shrink:0; align-items:center;
 }
-.card-code-area .code-textarea { flex:1; }
+
+.kso-field-row { display:flex; align-items:center; gap:6px; width:100%; }
+.kso-field-label {
+  font-size:11px; font-weight:600; color:#64748b;
+  min-width:72px; letter-spacing:.3px; text-align:right;
+}
+.kso-field-input {
+  flex:1; border:1px solid #e2e8f0; border-radius:5px;
+  padding:5px 8px; font-size:12px; font-family:inherit; color:#475569;
+  transition:border-color .15s; background:#fff; text-align:center;
+}
+.kso-field-input:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,.12); }
 
 .resp-row { display:flex; align-items:flex-start; margin-bottom:8px; }
 .resp-label-side {
@@ -109,19 +193,9 @@ body {
 .resp-text {
   flex:1; min-width:0; border:1px solid #e2e8f0; border-radius:6px; padding:8px 10px;
   min-height:42px; font-size:12.5px; line-height:1.6;
-  background:#fff; white-space:pre-wrap; word-break:break-all;
-  overflow-y:auto; max-height:200px; color:#475569;
+  background:#fff; white-space:pre-wrap; word-break:break-word;
+  color:#475569;
 }
-
-/* Code textareas */
-.code-group-label { font-size:11px; font-weight:600; color:#ef4444; margin-top:2px; }
-.code-textarea {
-  width:100%; border:1px solid #e2e8f0; border-radius:6px;
-  padding:6px 8px; font-size:11.5px; line-height:1.5;
-  resize:vertical; min-height:32px; font-family:inherit; color:#475569;
-  transition:border-color .15s;
-}
-.code-textarea:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,.12); }
 
 /* ── Personal Modal ── */
 .modal-overlay {
@@ -130,9 +204,10 @@ body {
 }
 .modal-overlay.show { display:block; }
 .modal-box {
-  background:#fff; width:90%; max-width:1100px; border-radius:10px;
+  background:#fff; width:90%; max-width:1100px; height:85vh; border-radius:10px;
   box-shadow:0 20px 60px rgba(0,0,0,.2);
-  position:absolute; left:50%; top:60px; transform:translateX(-50%);
+  position:absolute; left:50%; top:50px; transform:translateX(-50%);
+  display:flex; flex-direction:column;
 }
 .modal-header {
   display:flex; align-items:center; justify-content:space-between;
@@ -140,6 +215,7 @@ body {
   background:linear-gradient(135deg,#1e293b,#334155);
   border-radius:10px 10px 0 0;
   cursor:grab; user-select:none; color:#fff;
+  flex-shrink:0;
 }
 .modal-header:active { cursor:grabbing; }
 .modal-header-left { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
@@ -152,28 +228,30 @@ body {
   transition:background .15s;
 }
 .modal-close-btn:hover { background:rgba(255,255,255,.25); }
-.modal-body { padding:0; max-height:70vh; overflow-y:auto; }
+.modal-body { padding:0; flex:1; overflow-y:auto; border-radius:0 0 10px 10px; }
 
 .modal-dilemma { padding:16px 24px; border-bottom:1px solid #f1f5f9; }
 .modal-dilemma:last-child { border-bottom:none; }
 .modal-dilemma-header { display:flex; align-items:center; gap:16px; margin-bottom:10px; }
 .modal-dilemma-title { font-size:13.5px; font-weight:600; color:#1e293b; flex:1; }
-.modal-dilemma-code-label { font-size:13px; font-weight:600; color:#64748b; width:200px; text-align:center; }
-.modal-dilemma-body { display:flex; gap:16px; align-items:stretch; }
+.modal-dilemma-kso-label { font-size:12px; font-weight:600; color:#64748b; width:220px; text-align:center; }
+.modal-dilemma-body { display:flex; gap:16px; align-items:flex-start; }
 .modal-resp-area { flex:1; display:flex; flex-direction:column; gap:8px; }
 .modal-resp-row { display:flex; align-items:flex-start; gap:10px; }
 .modal-resp-label { min-width:85px; font-size:12px; font-weight:600; color:#64748b; padding-top:7px; }
 .modal-resp-text {
   flex:1; border:1px solid #e2e8f0; border-radius:6px; padding:8px 10px;
   font-size:13px; background:#f8fafc; color:#475569; line-height:1.6;
-  min-height:36px; resize:none; font-family:inherit;
+  min-height:36px; font-family:inherit;
+  white-space:pre-wrap; word-break:break-word;
 }
-.modal-resp-text.r2 { min-height:60px; }
-.modal-code-area { width:200px; min-width:200px; display:flex; flex-direction:column; }
-.modal-code-textarea {
-  width:100%; flex:1; border:1px solid #e2e8f0; border-radius:6px;
-  padding:8px 10px; font-size:13px; font-family:inherit; resize:none;
-  color:#64748b; text-align:center; line-height:1.6; background:#f8fafc;
+.modal-kso-area { width:220px; min-width:220px; display:flex; flex-direction:column; gap:6px; justify-content:center; }
+.modal-kso-row { display:flex; align-items:center; gap:6px; }
+.modal-kso-label { font-size:11px; font-weight:600; color:#64748b; min-width:72px; }
+.modal-kso-value {
+  flex:1; border:1px solid #e2e8f0; border-radius:5px; padding:5px 8px;
+  font-size:12px; background:#f1f5f9; color:#475569; font-family:inherit;
+  min-height:26px;
 }
 
 /* ── Dilemma Docs Modal ── */
@@ -218,32 +296,72 @@ body {
 
 /* ── Print ── */
 @media print {
-  @page { size:letter; margin:12mm 10mm; }
-  .page-title, .topbar, .info-bar, .loading-overlay, .status-toast,
+  @page { size:landscape; margin:10mm; }
+  .fixed-header, .header-spacer, .loading-overlay, .status-toast,
   .modal-overlay, .docs-modal-overlay { display:none !important; }
   body { background:#fff; font-size:11px; }
   .page-wrap { max-width:100%; }
+
+  /* 기본 카드 인쇄 */
   .card-list { padding:0; }
   .card {
     break-inside:avoid; border:1px solid #ddd; border-radius:0;
     margin-bottom:8px; box-shadow:none;
   }
   .card-header { background:#f5f5f5; border-bottom:1px solid #ddd; padding:6px 10px; }
-  .card-body { }
   .card-responses { padding:6px 8px; }
-  .card-code-area {
-    width:140px; min-width:140px; max-width:140px;
+  .card-kso-area {
+    width:200px; min-width:200px; max-width:200px;
     padding:4px 6px; border-left:1px solid #ddd;
   }
-  .card-header .code-label { width:140px; font-size:10px; }
+  .card-header .kso-label { width:200px; font-size:10px; }
   .resp-text {
     border:1px solid #ddd; font-size:10.5px; padding:4px 6px;
     max-height:none; overflow:visible;
   }
   .resp-label-side { font-size:10px; width:70px; min-width:70px; }
-  .code-textarea {
+  .kso-field-input {
     border:1px solid #ddd; font-size:10px; padding:3px 5px;
-    min-height:auto;
+  }
+
+  /* 분석 모달 인쇄 모드 (A4 세로) */
+  body.printing-analysis { }
+  body.printing-analysis .page-wrap { display:none !important; }
+  body.printing-analysis .modal-overlay,
+  body.printing-analysis .docs-modal-overlay { display:none !important; }
+  body.printing-analysis .analysis-overlay {
+    display:block !important; position:static !important;
+    background:none !important; backdrop-filter:none !important;
+    overflow:visible !important;
+  }
+  body.printing-analysis .analysis-box {
+    width:100% !important; max-width:100% !important; height:auto !important;
+    margin:0 !important; border-radius:0 !important;
+    box-shadow:none !important; position:static !important;
+    transform:none !important; display:block !important;
+  }
+  body.printing-analysis .analysis-header {
+    background:#1e293b !important; -webkit-print-color-adjust:exact;
+    print-color-adjust:exact; border-radius:0 !important;
+  }
+  body.printing-analysis .modal-close-btn { display:none !important; }
+  body.printing-analysis .analysis-body {
+    overflow:visible !important; max-height:none !important;
+    height:auto !important;
+  }
+  body.printing-analysis .analysis-chart-wrap {
+    border:1px solid #ddd; background:#fff !important;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+    overflow:visible !important;
+  }
+  body.printing-analysis .analysis-summary table {
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  body.printing-analysis canvas {
+    max-width:100% !important;
+  }
+  body.printing-analysis .analysis-chart-section {
+    break-inside:avoid;
   }
 }
 </style>
@@ -254,37 +372,43 @@ body {
 <!-- Loading -->
 <div class="loading-overlay" id="loadingOverlay">데이터 로딩 중...</div>
 
-<!-- Title -->
-<div class="page-title">AI_Ethics_Analyzer</div>
-
-<!-- Top Bar -->
-<div class="topbar">
-  <div class="topbar-left">
-    <select id="selDilemma">
-      <option value="1" selected>Dilemma-01</option>
-      <option value="2">Dilemma-02</option>
-      <option value="3">Dilemma-03</option>
-      <option value="4">Dilemma-04</option>
-    </select>
-    <select id="selStage">
-      <option value="전체">Stage</option>
-      <option value="전체">전체 (All)</option>
-    </select>
-    <button class="btn btn-dark" id="btnSort">N2_Score (ASC)</button>
-    <button class="btn btn-dark" onclick="openDocsModal()">Dilemma</button>
+<!-- Fixed Header -->
+<div class="fixed-header" id="fixedHeader">
+  <div class="page-title">AI_Ethics_Analyzer</div>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <select id="selDilemma">
+          <option value="1" selected>Dilemma-01</option>
+          <option value="2">Dilemma-02</option>
+          <option value="3">Dilemma-03</option>
+          <option value="4">Dilemma-04</option>
+        </select>
+        <select id="selOrientation">
+          <option value="전체">Orientation</option>
+        </select>
+        <select id="selScheme">
+          <option value="전체">Scheme</option>
+        </select>
+        <button class="btn btn-blue" onclick="openAnalysisModal('orientation')">Orientation 분석</button>
+        <button class="btn btn-blue" onclick="openAnalysisModal('scheme')">Scheme 분석</button>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-dark" onclick="openDocsModal()">Dilemma 보기</button>
+        <button class="btn btn-gray" onclick="loadData()">Reload</button>
+        <button class="btn btn-green" onclick="saveAll()">Save</button>
+        <button class="btn btn-red" onclick="window.print()">Print</button>
+      </div>
+    </div>
   </div>
-  <div class="topbar-right">
-    <button class="btn btn-gray" id="btnReload" onclick="loadData()">Reload</button>
-    <button class="btn btn-green" id="btnSave" onclick="saveAll()">Save</button>
-    <button class="btn btn-red" onclick="window.print()">Print</button>
+  <div class="info-bar">
+    <div class="info-bar-inner">
+      <span id="infoLeft">필터: Dilemma-01</span>
+      <span id="infoRight">총 0건</span>
+    </div>
   </div>
 </div>
-
-<!-- Info bar -->
-<div class="info-bar">
-  <span id="infoLeft">필터: Dilemma-01 | 정렬: N2_Score ASC</span>
-  <span id="infoRight">총 0건</span>
-</div>
+<div class="header-spacer"></div>
 
 <!-- Cards -->
 <div class="card-list" id="cardList"></div>
@@ -303,9 +427,11 @@ body {
         <div class="modal-sep"></div>
         <span><span class="modal-field-label">ResID</span> <span class="modal-field-value" id="mResID">-</span></span>
         <div class="modal-sep"></div>
-        <span><span class="modal-field-label">Stage(N2)</span> <span class="modal-field-value" id="mStage">-</span></span>
+        <span><span class="modal-field-label">N2</span> <span class="modal-field-value" id="mN2">-</span></span>
         <div class="modal-sep"></div>
-        <span><span class="modal-field-label">Score(N2)</span> <span class="modal-field-value" id="mScore">-</span></span>
+        <span><span class="modal-field-label">P%</span> <span class="modal-field-value" id="mP">-</span></span>
+        <div class="modal-sep"></div>
+        <span><span class="modal-field-label">Age</span> <span class="modal-field-value" id="mAge">-</span></span>
       </div>
       <button class="modal-close-btn" onclick="closeModal()">닫기 ✕</button>
     </div>
@@ -324,63 +450,71 @@ body {
   </div>
 </div>
 
+<!-- Analysis Modal -->
+<div class="analysis-overlay" id="analysisOverlay" onclick="if(event.target===this)closeAnalysis()">
+  <div class="analysis-box" id="analysisBox">
+    <div class="analysis-header" id="analysisHeader">
+      <div>
+        <span class="analysis-title" id="analysisTitle">분석</span>
+        <span class="analysis-subtitle" id="analysisSubtitle"></span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="modal-close-btn" onclick="printAnalysis()" style="background:rgba(255,255,255,.25);">출력 🖨</button>
+        <button class="modal-close-btn" onclick="closeAnalysis()">닫기 ✕</button>
+      </div>
+    </div>
+    <div class="analysis-body" id="analysisBody"></div>
+  </div>
+</div>
+
 <script>
 // ──────────────────────────────────────────
-// ★ 설정: GAS 웹앱 URL을 여기에 붙여넣으세요
+// ★ 설정: GAS 웹앱 URL
 // ──────────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbw8vivFydqIDIsWIx6OIOIVpMyxDSHyDrRMs3IoPYwe4jTe1AH-7HOvErLa0Eya6u0CEA/exec';
 
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSTxvYoHn5_2scfnTs1XxBrOaPyOGWPSx3r_0Wb9ZWVA8-L3kDPfhzbRLXhWX4B9nvVld5wrxdAMSDD/pub?gid=1846865655&single=true&output=csv';
 
-const HEADER_ROWS = 3; // CSV에서 건너뛸 헤더 행 수
+const HEADER_ROWS = 3;
+const COL_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXY';
 
-let allData = [];       // 파싱된 전체 데이터
-let sortAsc = true;       // 정렬 방향 (기본: 오름차순)
-let stageSet = new Set(); // Stage 고유값
+let allData = [];
 
-// ── Dilemma 매핑 (1-based index) ──
-// Dilemma 1: E(4), F(5), G(6)   → idx 4,5,6
-// Dilemma 2: H(7), I(8), J(9)   → idx 7,8,9
-// Dilemma 3: K(10),L(11),M(12)  → idx 10,11,12
-// Dilemma 4: N(13),O(14),P(15)  → idx 13,14,15
+// ── Dilemma 매핑 (0-based index for raw array) ──
+// A=0 B=1 C=2 D=3 E=4
+// Dilemma1: F(5)=R1, G(6)=R2, H(7)=Keyword, I(8)=Scheme, J(9)=Orientation
+// Dilemma2: K(10)=R1, L(11)=R2, M(12)=Keyword, N(13)=Scheme, O(14)=Orientation
+// Dilemma3: P(15)=R1, Q(16)=R2, R(17)=Keyword, S(18)=Scheme, T(19)=Orientation
+// Dilemma4: U(20)=R1, V(21)=R2, W(22)=Keyword, X(23)=Scheme, Y(24)=Orientation
 const DILEMMA_MAP = {
-  '1': { r1: 4, r2: 5, code: 6,  codeCol:'G' },
-  '2': { r1: 7, r2: 8, code: 9,  codeCol:'J' },
-  '3': { r1:10, r2:11, code:12, codeCol:'M' },
-  '4': { r1:13, r2:14, code:15, codeCol:'P' },
+  '1': { r1:5,  r2:6,  keyword:7,  scheme:8,  orientation:9,  keywordCol:'H', schemeCol:'I', orientationCol:'J' },
+  '2': { r1:10, r2:11, keyword:12, scheme:13, orientation:14, keywordCol:'M', schemeCol:'N', orientationCol:'O' },
+  '3': { r1:15, r2:16, keyword:17, scheme:18, orientation:19, keywordCol:'R', schemeCol:'S', orientationCol:'T' },
+  '4': { r1:20, r2:21, keyword:22, scheme:23, orientation:24, keywordCol:'W', schemeCol:'X', orientationCol:'Y' },
 };
 
 // ── CSV 파싱 ──
 function parseCSV(text) {
-  const rows = [];
-  let current = '';
-  let inQuotes = false;
   const lines = [];
+  let current = '', inQuotes = false;
 
-  // 줄바꿈 처리 (따옴표 안의 줄바꿈 허용)
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (ch === '"') {
-      if (inQuotes && text[i+1] === '"') {
-        current += '"'; i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
+      if (inQuotes && text[i+1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
     } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
       if (ch === '\r' && text[i+1] === '\n') i++;
-      lines.push(current);
-      current = '';
+      lines.push(current); current = '';
     } else {
       current += ch;
     }
   }
   if (current) lines.push(current);
 
-  // 각 줄을 필드로 분리
-  for (const line of lines) {
+  return lines.map(line => {
     const fields = [];
-    let field = '';
-    let q = false;
+    let field = '', q = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') {
@@ -393,21 +527,18 @@ function parseCSV(text) {
       }
     }
     fields.push(field);
-    rows.push(fields);
-  }
-  return rows;
+    return fields;
+  });
 }
 
-// ── 데이터 로드 (GAS 우선, CSV 대체) ──
+// ── 데이터 로드 ──
 async function loadData() {
   showLoading(true);
   try {
-    // GAS 우선 시도 (셀 경계를 정확히 처리)
     if (GAS_URL && GAS_URL !== 'YOUR_GAS_WEB_APP_URL_HERE') {
       const ok = await loadFromGAS();
       if (ok) { showLoading(false); return; }
     }
-    // CSV 대체
     await loadFromCSV();
   } catch(err) {
     console.error(err);
@@ -417,7 +548,7 @@ async function loadData() {
   }
 }
 
-// ── GAS에서 읽기 (기본) ──
+// ── GAS에서 읽기 ──
 async function loadFromGAS() {
   try {
     const resp = await fetch(GAS_URL);
@@ -425,22 +556,17 @@ async function loadFromGAS() {
     if (json.status !== 'ok') throw new Error(json.message);
 
     allData = [];
-    stageSet = new Set();
-
     json.data.forEach(r => {
-      // ResID가 "Ready"인 행 제외
       if (r.B && r.B.trim() === 'Ready') return;
 
-      const row = {
+      const rawArr = COL_LETTERS.split('').map(c => r[c] || '');
+      allData.push({
         rowNum: r.rowNum,
-        raw: [r.A,r.B,r.C,r.D,r.E,r.F,r.G,r.H,r.I,r.J,r.K,r.L,r.M,r.N,r.O,r.P],
-        A: r.A, B: r.B, C: r.C, D: r.D,
-      };
-      allData.push(row);
-      if (row.C) stageSet.add(row.C);
+        raw: rawArr,
+        A: r.A, B: r.B, C: r.C, D: r.D, E: r.E,
+      });
     });
 
-    populateStageDropdown();
     renderCards();
     showToast('데이터 로드 완료: ' + allData.length + '건');
     return true;
@@ -450,108 +576,119 @@ async function loadFromGAS() {
   }
 }
 
-// ── CSV에서 읽기 (대체) ──
+// ── CSV에서 읽기 ──
 async function loadFromCSV() {
   const resp = await fetch(CSV_URL);
   if (!resp.ok) throw new Error('CSV fetch 실패: ' + resp.status);
   const text = await resp.text();
   const rows = parseCSV(text);
-
   const dataRows = rows.slice(HEADER_ROWS);
 
   allData = [];
-  stageSet = new Set();
-
   dataRows.forEach((cols, idx) => {
     if (!cols[0] || cols[0].trim() === '') return;
     const resId = (cols[1] || '').trim();
-    // ResID가 "Ready"인 행 제외
     if (resId === 'Ready') return;
 
-    const row = {
+    // Ensure 25 columns
+    while (cols.length < 25) cols.push('');
+
+    allData.push({
       rowNum: HEADER_ROWS + 1 + idx,
-      raw: cols,
+      raw: cols.map(c => (c || '').trim()),
       A: (cols[0] || '').trim(),
       B: resId,
       C: (cols[2] || '').trim(),
       D: (cols[3] || '').trim(),
-    };
-    allData.push(row);
-    if (row.C) stageSet.add(row.C);
+      E: (cols[4] || '').trim(),
+    });
   });
 
-  populateStageDropdown();
   renderCards();
   showToast('CSV 데이터 로드 완료: ' + allData.length + '건');
 }
 
-// ── Stage 드롭다운 채우기 ──
-function populateStageDropdown() {
-  const sel = document.getElementById('selStage');
-  // 기존 옵션 유지 (전체 + All)
-  while (sel.options.length > 2) sel.remove(2);
-
-  const sorted = Array.from(stageSet)
-    .filter(s => s !== 'IRD' && s !== '-' && s.trim() !== '')
-    .sort((a,b) => {
-      const na = parseFloat(a.replace(/[^0-9.]/g,'')) || 0;
-      const nb = parseFloat(b.replace(/[^0-9.]/g,'')) || 0;
-      return na - nb;
-    });
-  sorted.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s; opt.textContent = s;
-    sel.appendChild(opt);
-  });
+// ── 점수 포맷 (소수점 2자리, IRD 등 텍스트는 그대로) ──
+function fmtScore(val) {
+  if (!val || val.trim() === '') return '-';
+  const n = parseFloat(val);
+  if (isNaN(n)) return val; // IRD 등 텍스트 그대로
+  return n.toFixed(2);
 }
 
-// ── 필터 + 정렬된 데이터 얻기 ──
+// ── Orientation / Scheme 드롭다운 채우기 ──
+function populateFilterDropdowns() {
+  const dil = document.getElementById('selDilemma').value;
+  const dm = DILEMMA_MAP[dil];
+
+  const oriSet = new Set();
+  const schSet = new Set();
+  allData.forEach(r => {
+    const ori = getCellVal(r, dm.orientation);
+    const sch = getCellVal(r, dm.scheme);
+    if (ori) oriSet.add(ori);
+    if (sch) schSet.add(sch);
+  });
+
+  const fillSelect = (sel, labelText, valSet) => {
+    const prev = sel.value;
+    sel.innerHTML = '';
+    const def = document.createElement('option');
+    def.value = '전체'; def.textContent = labelText;
+    sel.appendChild(def);
+    const allOpt = document.createElement('option');
+    allOpt.value = '전체'; allOpt.textContent = '전체 (All)';
+    sel.appendChild(allOpt);
+    Array.from(valSet).sort().forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    });
+    // 이전 선택 복원 (가능하면)
+    if (Array.from(sel.options).some(o => o.value === prev)) sel.value = prev;
+    else sel.value = '전체';
+  };
+
+  fillSelect(document.getElementById('selOrientation'), 'Orientation', oriSet);
+  fillSelect(document.getElementById('selScheme'), 'Scheme', schSet);
+}
+
+// ── 필터된 데이터 ──
 function getFilteredData() {
   const dil = document.getElementById('selDilemma').value;
-  const stg = document.getElementById('selStage').value;
-
+  const oriFilter = document.getElementById('selOrientation').value;
+  const schFilter = document.getElementById('selScheme').value;
   let filtered = allData.slice();
 
-  // Stage 필터
-  if (stg !== '전체') {
-    filtered = filtered.filter(r => r.C === stg);
-  }
-
-  // 선택된 Dilemma의 Response가 빈 값이거나 "Invalid response data"인 행 제외
-  const INVALID = 'invalid response data';
   const dm = DILEMMA_MAP[dil];
   if (dm) {
-    filtered = filtered.filter(r => {
-      const r1 = getCellVal(r, dm.r1);
-      const r2 = getCellVal(r, dm.r2);
-      const r1empty = r1 === '' || r1.toLowerCase() === INVALID;
-      const r2empty = r2 === '' || r2.toLowerCase() === INVALID;
-      return !r1empty || !r2empty;
-    });
+    // Orientation 필터
+    if (oriFilter !== '전체') {
+      filtered = filtered.filter(r => getCellVal(r, dm.orientation) === oriFilter);
+    }
+    // Scheme 필터
+    if (schFilter !== '전체') {
+      filtered = filtered.filter(r => getCellVal(r, dm.scheme) === schFilter);
+    }
   }
-
-  // 정렬 (N2_Score)
-  filtered.sort((a,b) => {
-    const va = parseFloat(a.D) || 0;
-    const vb = parseFloat(b.D) || 0;
-    return sortAsc ? va - vb : vb - va;
-  });
 
   return filtered;
 }
 
 // ── 카드 렌더링 ──
 function renderCards() {
+  populateFilterDropdowns();
   const data = getFilteredData();
   const dil = document.getElementById('selDilemma').value;
-  const stg = document.getElementById('selStage').value;
   const container = document.getElementById('cardList');
   container.innerHTML = '';
 
-  // Info 업데이트
-  const dilLabel = dil === '전체' ? '전체' : 'Dilemma-0' + dil;
-  document.getElementById('infoLeft').textContent =
-    '필터: Dilemma=' + dilLabel + ', Stage=' + stg + ' | 정렬: N2_Score ' + (sortAsc?'ASC':'DESC');
+  const oriFilter = document.getElementById('selOrientation').value;
+  const schFilter = document.getElementById('selScheme').value;
+  let filterText = '필터: Dilemma-0' + dil;
+  if (oriFilter !== '전체') filterText += ' | Orientation=' + oriFilter;
+  if (schFilter !== '전체') filterText += ' | Scheme=' + schFilter;
+  document.getElementById('infoLeft').textContent = filterText;
   document.getElementById('infoRight').textContent = '총 ' + data.length + '건';
 
   if (data.length === 0) {
@@ -559,9 +696,7 @@ function renderCards() {
     return;
   }
 
-  data.forEach(row => {
-    container.appendChild(buildCard(row, dil));
-  });
+  data.forEach(row => container.appendChild(buildCard(row, dil)));
 }
 
 // ── 개별 카드 생성 ──
@@ -574,20 +709,27 @@ function buildCard(row, dilemma) {
   const header = document.createElement('div');
   header.className = 'card-header';
 
-  const scoreStage = document.createElement('span');
-  scoreStage.className = 'score-stage';
-  scoreStage.textContent = 'N2_Score(Stage) : ' + row.D + '(' + row.C + ')';
-
   const resid = document.createElement('span');
   resid.className = 'resid';
-  resid.textContent = 'ResID : ' + row.B;
-  resid.addEventListener('click', () => openModal(row));
+  resid.textContent = row.B || '-';
 
-  const codeLabel = document.createElement('span');
-  codeLabel.className = 'code-label';
-  codeLabel.textContent = '{Code}';
+  const makeTag = (label, value) => {
+    const tag = document.createElement('span');
+    tag.className = 'meta-tag';
+    tag.innerHTML = '<span class="meta-label">' + label + '</span>' + escHtml(value || '-');
+    return tag;
+  };
 
-  header.append(scoreStage, resid, codeLabel);
+  const modalBtn = document.createElement('button');
+  modalBtn.className = 'btn-modal';
+  modalBtn.textContent = '전체 응답 보기';
+  modalBtn.addEventListener('click', () => openModal(row));
+
+  const ksoLabel = document.createElement('span');
+  ksoLabel.className = 'kso-label';
+  ksoLabel.textContent = 'Analyzing';
+
+  header.append(resid, makeTag('N2', fmtScore(row.C)), makeTag('P%', fmtScore(row.D)), makeTag('Age', row.E), modalBtn, ksoLabel);
   card.appendChild(header);
 
   // ── Body ──
@@ -597,60 +739,43 @@ function buildCard(row, dilemma) {
   // Left: Responses
   const respArea = document.createElement('div');
   respArea.className = 'card-responses';
+  const dm = DILEMMA_MAP[dilemma];
+  respArea.appendChild(makeRespRow('Response-1', getCellVal(row, dm.r1)));
+  respArea.appendChild(makeRespRow('Response-2', getCellVal(row, dm.r2)));
 
-  const r1Text = getResponseText(row, dilemma, 'r1');
-  const r2Text = getResponseText(row, dilemma, 'r2');
+  // Right: Analyzing (Keyword / Scheme / Orientation)
+  const ksoArea = document.createElement('div');
+  ksoArea.className = 'card-kso-area';
 
-  respArea.appendChild(makeRespRow('Response-1', r1Text));
-  respArea.appendChild(makeRespRow('Response-2', r2Text));
+  const fields = [
+    { label: 'Keyword',     field: 'keyword',     idx: dm.keyword },
+    { label: 'Scheme',      field: 'scheme',       idx: dm.scheme },
+    { label: 'Orientation', field: 'orientation',  idx: dm.orientation },
+  ];
 
-  // Right: Code textarea(s)
-  const codeArea = document.createElement('div');
-  codeArea.className = 'card-code-area';
+  fields.forEach(f => {
+    const fieldRow = document.createElement('div');
+    fieldRow.className = 'kso-field-row';
 
-  if (dilemma === '전체') {
-    // 4개 Code 각각 표시
-    ['1','2','3','4'].forEach(d => {
-      const lbl = document.createElement('div');
-      lbl.className = 'code-group-label';
-      lbl.textContent = 'Dilemma-' + d + ' Code';
+    const lbl = document.createElement('span');
+    lbl.className = 'kso-field-label';
+    lbl.textContent = f.label;
 
-      const ta = document.createElement('textarea');
-      ta.className = 'code-textarea';
-      ta.dataset.rownum = row.rowNum;
-      ta.dataset.dilemma = d;
-      ta.value = getCellVal(row, DILEMMA_MAP[d].code);
-      ta.rows = 2;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'kso-field-input editable-field';
+    input.dataset.rownum = row.rowNum;
+    input.dataset.dilemma = dilemma;
+    input.dataset.field = f.field;
+    input.value = getCellVal(row, f.idx);
 
-      codeArea.append(lbl, ta);
-    });
-  } else {
-    const ta = document.createElement('textarea');
-    ta.className = 'code-textarea';
-    ta.dataset.rownum = row.rowNum;
-    ta.dataset.dilemma = dilemma;
-    ta.value = getCellVal(row, DILEMMA_MAP[dilemma].code);
-    ta.rows = 4;
-    codeArea.appendChild(ta);
-  }
+    fieldRow.append(lbl, input);
+    ksoArea.appendChild(fieldRow);
+  });
 
-  body.append(respArea, codeArea);
+  body.append(respArea, ksoArea);
   card.appendChild(body);
-
   return card;
-}
-
-// ── 응답 텍스트 구성 ──
-function getResponseText(row, dilemma, type) {
-  if (dilemma === '전체') {
-    return ['1','2','3','4'].map(d => {
-      const idx = DILEMMA_MAP[d][type];
-      const val = getCellVal(row, idx);
-      return 'Dilemma-' + d + ': ' + val;
-    }).join('\n');
-  } else {
-    return getCellVal(row, DILEMMA_MAP[dilemma][type]);
-  }
 }
 
 // ── 셀 값 가져오기 ──
@@ -683,21 +808,22 @@ async function saveAll() {
     return;
   }
 
-  const textareas = document.querySelectorAll('.code-textarea');
-  if (textareas.length === 0) {
+  const inputs = document.querySelectorAll('.editable-field');
+  if (inputs.length === 0) {
     showToast('저장할 항목이 없습니다.', true);
     return;
   }
 
   const updates = [];
-  textareas.forEach(ta => {
-    const rowNum = parseInt(ta.dataset.rownum);
-    const dil = ta.dataset.dilemma;
-    const codeCol = DILEMMA_MAP[dil].codeCol;
+  inputs.forEach(inp => {
+    const rowNum = parseInt(inp.dataset.rownum);
+    const dil = inp.dataset.dilemma;
+    const field = inp.dataset.field;
+    const colKey = field + 'Col';
     updates.push({
       row: rowNum,
-      col: codeCol,
-      value: ta.value
+      col: DILEMMA_MAP[dil][colKey],
+      value: inp.value
     });
   });
 
@@ -706,7 +832,7 @@ async function saveAll() {
     const resp = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'save', updates: updates }),
+      body: JSON.stringify({ action: 'save', updates }),
       redirect: 'follow'
     });
     const json = await resp.json();
@@ -723,18 +849,15 @@ async function saveAll() {
   }
 }
 
-// ── 정렬 토글 ──
-document.getElementById('btnSort').addEventListener('click', function() {
-  sortAsc = !sortAsc;
-  this.textContent = 'N2_Score (' + (sortAsc ? 'ASC' : 'DESC') + ')';
+// ── 드롭다운 변경 ──
+document.getElementById('selDilemma').addEventListener('change', () => {
+  // Dilemma 변경 시 Orientation/Scheme 필터 초기화
+  document.getElementById('selOrientation').value = '전체';
+  document.getElementById('selScheme').value = '전체';
   renderCards();
 });
-
-// ── 드롭다운 변경 ──
-document.getElementById('selDilemma').addEventListener('change', renderCards);
-document.getElementById('selStage').addEventListener('change', renderCards);
-
-// ── Dilemma 버튼: Google Docs 새 창 (onclick으로 처리) ──
+document.getElementById('selOrientation').addEventListener('change', renderCards);
+document.getElementById('selScheme').addEventListener('change', renderCards);
 
 // ── UI 유틸 ──
 function showLoading(show) {
@@ -746,6 +869,9 @@ function showToast(msg, isError) {
   t.style.background = isError ? '#c62828' : '#333';
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
+}
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ── Personal Modal ──
@@ -761,8 +887,9 @@ function openModal(row) {
   modalRow = row;
   document.getElementById('mNo').textContent = row.A || '-';
   document.getElementById('mResID').textContent = row.B || '-';
-  document.getElementById('mStage').textContent = row.C || '-';
-  document.getElementById('mScore').textContent = row.D || '-';
+  document.getElementById('mN2').textContent = fmtScore(row.C);
+  document.getElementById('mP').textContent = fmtScore(row.D);
+  document.getElementById('mAge').textContent = row.E || '-';
 
   const body = document.getElementById('modalBody');
   body.innerHTML = '';
@@ -771,45 +898,39 @@ function openModal(row) {
     const dm = DILEMMA_MAP[d];
     const r1 = getCellVal(row, dm.r1);
     const r2 = getCellVal(row, dm.r2);
-    const code = getCellVal(row, dm.code);
+    const kw = getCellVal(row, dm.keyword);
+    const sc = getCellVal(row, dm.scheme);
+    const ori = getCellVal(row, dm.orientation);
 
     const section = document.createElement('div');
     section.className = 'modal-dilemma';
     section.innerHTML = `
       <div class="modal-dilemma-header">
         <span class="modal-dilemma-title">${DILEMMA_LABELS[i]}</span>
-        <span class="modal-dilemma-code-label">{Code}</span>
+        <span class="modal-dilemma-kso-label">Analyzing</span>
       </div>
       <div class="modal-dilemma-body">
         <div class="modal-resp-area">
           <div class="modal-resp-row">
             <span class="modal-resp-label">Response-1</span>
-            <textarea class="modal-resp-text" readonly>${escHtml(r1)}</textarea>
+            <div class="modal-resp-text">${escHtml(r1)}</div>
           </div>
           <div class="modal-resp-row">
             <span class="modal-resp-label">Response-2</span>
-            <textarea class="modal-resp-text r2" readonly>${escHtml(r2)}</textarea>
+            <div class="modal-resp-text">${escHtml(r2)}</div>
           </div>
         </div>
-        <div class="modal-code-area">
-          <textarea class="modal-code-textarea" readonly>${escHtml(code)}</textarea>
+        <div class="modal-kso-area">
+          <div class="modal-kso-row"><span class="modal-kso-label">Keyword</span><div class="modal-kso-value">${escHtml(kw)}</div></div>
+          <div class="modal-kso-row"><span class="modal-kso-label">Scheme</span><div class="modal-kso-value">${escHtml(sc)}</div></div>
+          <div class="modal-kso-row"><span class="modal-kso-label">Orientation</span><div class="modal-kso-value">${escHtml(ori)}</div></div>
         </div>
       </div>`;
     body.appendChild(section);
   });
 
-  // Auto-resize textareas
-  body.querySelectorAll('textarea').forEach(ta => {
-    ta.style.height = 'auto';
-    ta.style.height = Math.max(ta.scrollHeight, ta.classList.contains('r2') ? 60 : 36) + 'px';
-  });
-
   document.getElementById('modalOverlay').classList.add('show');
-  // 위치 초기화
-  const box = document.querySelector('#modalOverlay .modal-box');
-  box.style.left = '50%';
-  box.style.top = '60px';
-  box.style.transform = 'translateX(-50%)';
+  document.getElementById('modalBody').scrollTop = 0;
   document.body.style.overflow = 'hidden';
 }
 
@@ -819,21 +940,14 @@ function closeModal() {
   modalRow = null;
 }
 
-function escHtml(s) {
-  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
 // ── Dilemma Docs Modal ──
 const DOCS_URL = 'https://docs.google.com/document/d/123uxkezDUtXmtUvLsR7PHQzs0Q2Z6T58TRKRHBtul0o/preview';
 
 function openDocsModal() {
   document.getElementById('docsIframe').src = DOCS_URL;
   document.getElementById('docsModalOverlay').classList.add('show');
-  // 위치 초기화
   const box = document.querySelector('.docs-modal-box');
-  box.style.left = '50%';
-  box.style.top = '50px';
-  box.style.transform = 'translateX(-50%)';
+  box.style.left = '50%'; box.style.top = '50px'; box.style.transform = 'translateX(-50%)';
   document.body.style.overflow = 'hidden';
 }
 
@@ -850,48 +964,435 @@ function makeDraggable(headerEl, boxEl) {
   headerEl.addEventListener('mousedown', (e) => {
     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
     isDragging = true;
-    startX = e.clientX;
-    startY = e.clientY;
-
-    // transform 제거하고 현재 위치를 px로 계산
+    startX = e.clientX; startY = e.clientY;
     const rect = boxEl.getBoundingClientRect();
     boxEl.style.transform = 'none';
     boxEl.style.left = rect.left + 'px';
     boxEl.style.top = rect.top + 'px';
-    origX = rect.left;
-    origY = rect.top;
-
+    origX = rect.left; origY = rect.top;
     e.preventDefault();
   });
 
   document.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    boxEl.style.left = (origX + dx) + 'px';
-    boxEl.style.top = (origY + dy) + 'px';
+    boxEl.style.left = (origX + e.clientX - startX) + 'px';
+    boxEl.style.top = (origY + e.clientY - startY) + 'px';
   });
 
-  document.addEventListener('mouseup', () => {
-    isDragging = false;
+  document.addEventListener('mouseup', () => { isDragging = false; });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const mH = document.querySelector('#modalOverlay .modal-header');
+  const mB = document.querySelector('#modalOverlay .modal-box');
+  if (mH && mB) makeDraggable(mH, mB);
+
+  const dH = document.querySelector('#docsModalOverlay .docs-modal-header');
+  const dB = document.querySelector('#docsModalOverlay .docs-modal-box');
+  if (dH && dB) makeDraggable(dH, dB);
+
+  const aH = document.getElementById('analysisHeader');
+  const aB = document.getElementById('analysisBox');
+  if (aH && aB) makeDraggable(aH, aB);
+});
+
+// ── Analysis Modal ──
+const CHART_COLORS = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+
+async function openAnalysisModal(mode) {
+  const dil = document.getElementById('selDilemma').value;
+  const dm = DILEMMA_MAP[dil];
+  const dilLabel = 'Dilemma-0' + dil;
+  const groupLabel = mode === 'orientation' ? 'Orientation' : 'Scheme';
+  const groupIdx = mode === 'orientation' ? dm.orientation : dm.scheme;
+
+  // 모달을 먼저 열고 로딩 표시
+  document.getElementById('analysisTitle').textContent = groupLabel + '별 분석';
+  document.getElementById('analysisSubtitle').textContent = dilLabel + ' 기준';
+  const body = document.getElementById('analysisBody');
+  body.innerHTML = '<div class="analysis-loading"><div class="analysis-spinner"></div><div>데이터 분석 중...</div></div>';
+  document.getElementById('analysisOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+
+  // 시트에서 최신 데이터 다시 로드
+  try {
+    if (GAS_URL && GAS_URL !== 'YOUR_GAS_WEB_APP_URL_HERE') {
+      const resp = await fetch(GAS_URL);
+      const json = await resp.json();
+      if (json.status === 'ok') {
+        allData = [];
+        json.data.forEach(r => {
+          if (r.B && r.B.trim() === 'Ready') return;
+          const rawArr = COL_LETTERS.split('').map(c => r[c] || '');
+          allData.push({ rowNum: r.rowNum, raw: rawArr, A: r.A, B: r.B, C: r.C, D: r.D, E: r.E });
+        });
+      }
+    }
+  } catch(e) {
+    console.error('분석용 데이터 로드 실패:', e);
+  }
+
+  await new Promise(r => setTimeout(r, 300)); // UI 업데이트 대기
+
+  // 그룹핑
+  const groups = {};
+  allData.forEach(r => {
+    const key = getCellVal(r, groupIdx) || '(미입력)';
+    if (!groups[key]) groups[key] = { n2: [], p: [], age: [], count: 0 };
+    groups[key].count++;
+    const n2 = parseFloat(r.C); if (!isNaN(n2)) groups[key].n2.push(n2);
+    const p = parseFloat(r.D);  if (!isNaN(p))  groups[key].p.push(p);
+    const a = parseFloat(r.E);  if (!isNaN(a))  groups[key].age.push(a);
+  });
+
+  const labels = Object.keys(groups).sort();
+  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+  const median = arr => {
+    if (!arr.length) return 0;
+    const s = arr.slice().sort((a,b)=>a-b);
+    const m = Math.floor(s.length/2);
+    return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
+  };
+  const q1 = arr => { const s = arr.slice().sort((a,b)=>a-b); return median(s.slice(0, Math.floor(s.length/2))); };
+  const q3 = arr => { const s = arr.slice().sort((a,b)=>a-b); return median(s.slice(Math.ceil(s.length/2))); };
+
+  function boxStats(arr) {
+    if (!arr.length) return null;
+    const s = arr.slice().sort((a,b)=>a-b);
+    return { min:s[0], q1:q1(s), med:median(s), q3:q3(s), max:s[s.length-1], avg:avg(s), n:s.length };
+  }
+
+  body.innerHTML = '';
+
+  if (labels.length === 0) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">분석할 데이터가 없습니다.</div>';
+    return;
+  }
+
+  const dpr = window.devicePixelRatio || 1;
+  const wrap = document.createElement('div');
+  wrap.className = 'analysis-charts';
+
+  // ── 1) 빈도 분석 (Frequency) ──
+  const freqSec = document.createElement('div');
+  freqSec.className = 'analysis-chart-section';
+  const freqTitle = document.createElement('div');
+  freqTitle.className = 'analysis-chart-title';
+  freqTitle.textContent = groupLabel + '별 빈도 (Frequency)';
+  const freqWrap = document.createElement('div');
+  freqWrap.className = 'analysis-chart-wrap';
+  const freqCanvas = document.createElement('canvas');
+  const freqLogicW = Math.max(labels.length * 100 + 100, 400);
+  freqCanvas.width = freqLogicW * dpr;
+  freqCanvas.height = 280 * dpr;
+  freqCanvas.style.width = freqLogicW + 'px';
+  freqCanvas.style.height = '280px';
+  freqWrap.appendChild(freqCanvas);
+  freqSec.append(freqTitle, freqWrap);
+  wrap.appendChild(freqSec);
+  drawFreqChart(freqCanvas, labels.map(k => ({ label: k, count: groups[k].count })), dpr);
+
+  // ── 2) Box Plots ──
+  const bpN2  = labels.map(k => ({ label:k, ...boxStats(groups[k].n2) }));
+  const bpP   = labels.map(k => ({ label:k, ...boxStats(groups[k].p) }));
+  const bpAge = labels.map(k => ({ label:k, ...boxStats(groups[k].age) }));
+
+  const chartDefs = [
+    { title: 'N2 Score (by ' + groupLabel + ')', data: bpN2,  color: '#3b82f6' },
+    { title: 'P% Score (by ' + groupLabel + ')', data: bpP,   color: '#f59e0b' },
+    { title: 'Age (by ' + groupLabel + ')',       data: bpAge, color: '#10b981' },
+  ];
+
+  chartDefs.forEach(cd => {
+    const sec = document.createElement('div');
+    sec.className = 'analysis-chart-section';
+    const t = document.createElement('div');
+    t.className = 'analysis-chart-title';
+    t.textContent = cd.title;
+    const cw = document.createElement('div');
+    cw.className = 'analysis-chart-wrap';
+    const canvas = document.createElement('canvas');
+    const logicW = Math.max(labels.length * 120 + 100, 500);
+    canvas.width = logicW * dpr;
+    canvas.height = 300 * dpr;
+    canvas.style.width = logicW + 'px';
+    canvas.style.height = '300px';
+    cw.appendChild(canvas);
+    sec.append(t, cw);
+    wrap.appendChild(sec);
+    drawBoxPlot(canvas, cd.data, cd.color, dpr);
+  });
+
+  // ── 3) Summary table ──
+  const sumSec = document.createElement('div');
+  sumSec.className = 'analysis-summary';
+  let tbl = '<table><thead><tr><th>' + groupLabel + '</th><th>빈도</th><th>N2 평균</th><th>N2 중앙값</th><th>P% 평균</th><th>P% 중앙값</th><th>Age 평균</th><th>Age 중앙값</th></tr></thead><tbody>';
+  let totalN=0, sumN2=0, sumP=0, sumAge=0;
+  labels.forEach(k => {
+    const sn2 = boxStats(groups[k].n2);
+    const sp  = boxStats(groups[k].p);
+    const sa  = boxStats(groups[k].age);
+    const cn = groups[k].count;
+    totalN += cn;
+    if(sn2) sumN2 += sn2.avg * sn2.n;
+    if(sp)  sumP  += sp.avg * sp.n;
+    if(sa)  sumAge+= sa.avg * sa.n;
+    tbl += '<tr><td style="font-weight:600;color:#1e293b">' + escHtml(k) + '</td><td>' + cn + '</td>';
+    tbl += '<td>' + (sn2?sn2.avg.toFixed(2):'-') + '</td><td>' + (sn2?sn2.med.toFixed(2):'-') + '</td>';
+    tbl += '<td>' + (sp?sp.avg.toFixed(2):'-') + '</td><td>' + (sp?sp.med.toFixed(2):'-') + '</td>';
+    tbl += '<td>' + (sa?sa.avg.toFixed(1):'-') + '</td><td>' + (sa?sa.med.toFixed(1):'-') + '</td></tr>';
+  });
+  const numN2 = allData.filter(r=>!isNaN(parseFloat(r.C))).length;
+  const numP  = allData.filter(r=>!isNaN(parseFloat(r.D))).length;
+  const numAge= allData.filter(r=>!isNaN(parseFloat(r.E))).length;
+  tbl += '<tr style="background:#f1f5f9;font-weight:600"><td>전체</td><td>'+totalN+'</td>';
+  tbl += '<td>'+(numN2?(sumN2/numN2).toFixed(2):'-')+'</td><td>-</td>';
+  tbl += '<td>'+(numP?(sumP/numP).toFixed(2):'-')+'</td><td>-</td>';
+  tbl += '<td>'+(numAge?(sumAge/numAge).toFixed(1):'-')+'</td><td>-</td></tr>';
+  tbl += '</tbody></table>';
+  sumSec.innerHTML = tbl;
+
+  wrap.appendChild(sumSec);
+  body.appendChild(wrap);
+  body.scrollTop = 0;
+
+  // 카드 목록도 갱신
+  renderCards();
+}
+
+function closeAnalysis() {
+  document.getElementById('analysisOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function printAnalysis() {
+  // A4 세로 방향 인쇄용 스타일 삽입
+  const style = document.createElement('style');
+  style.id = 'analysis-print-style';
+  style.textContent = '@media print { @page { size:A4 portrait; margin:12mm; } }';
+  document.head.appendChild(style);
+
+  document.body.classList.add('printing-analysis');
+  window.print();
+  document.body.classList.remove('printing-analysis');
+  style.remove();
+}
+
+function drawFreqChart(canvas, data, dpr) {
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = canvas.width / dpr, H = canvas.height / dpr;
+  const padL = 50, padR = 20, padT = 20, padB = 55;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  ctx.clearRect(0, 0, W, H);
+  if (!data.length) return;
+
+  const maxCount = Math.max(...data.map(d => d.count), 1);
+  const total = data.reduce((s,d) => s + d.count, 0);
+  const gap = chartW / data.length;
+  const barW = Math.min(60, gap * 0.55);
+  const colors = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+
+  // Grid
+  const gridLines = 5;
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+  ctx.fillStyle = '#94a3b8'; ctx.font = '11px Inter, sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= gridLines; i++) {
+    const val = Math.round(maxCount * i / gridLines);
+    const y = padT + chartH - (chartH * i / gridLines);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillText(val, padL - 6, y + 4);
+  }
+
+  // Bars
+  data.forEach((d, i) => {
+    const x = padL + gap * i + (gap - barW) / 2;
+    const barH = (d.count / maxCount) * chartH;
+    const y = padT + chartH - barH;
+
+    const color = colors[i % colors.length];
+    const grad = ctx.createLinearGradient(x, y, x, padT + chartH);
+    grad.addColorStop(0, color); grad.addColorStop(1, color + '88');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, barH, [4,4,0,0]); ctx.fill();
+
+    // Count + percentage
+    ctx.fillStyle = '#1e293b'; ctx.font = 'bold 13px Inter, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(d.count, x + barW/2, y - 8);
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px Inter, sans-serif';
+    ctx.fillText((d.count/total*100).toFixed(1) + '%', x + barW/2, y - 22);
+
+    // Label
+    ctx.save();
+    ctx.fillStyle = '#334155'; ctx.font = '12px Inter, sans-serif';
+    const lx = x + barW/2, ly = padT + chartH + 16;
+    if (data.length > 5) {
+      ctx.translate(lx, ly); ctx.rotate(-Math.PI/7); ctx.textAlign = 'right';
+      ctx.fillText(d.label.length > 12 ? d.label.slice(0,11)+'…' : d.label, 0, 0);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.fillText(d.label.length > 16 ? d.label.slice(0,15)+'…' : d.label, lx, ly);
+    }
+    ctx.restore();
   });
 }
 
-// 모든 모달에 드래그 적용
-window.addEventListener('DOMContentLoaded', () => {
-  // Personal 모달
-  const mHeader = document.querySelector('#modalOverlay .modal-header');
-  const mBox = document.querySelector('#modalOverlay .modal-box');
-  if (mHeader && mBox) makeDraggable(mHeader, mBox);
+function drawBoxPlot(canvas, data, baseColor, dpr) {
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = canvas.width / dpr, H = canvas.height / dpr;
+  const padL = 55, padR = 25, padT = 30, padB = 55;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
 
-  // Dilemma Docs 모달
-  const dHeader = document.querySelector('#docsModalOverlay .docs-modal-header');
-  const dBox = document.querySelector('#docsModalOverlay .docs-modal-box');
-  if (dHeader && dBox) makeDraggable(dHeader, dBox);
-});
+  ctx.clearRect(0, 0, W, H);
+  if (!data.length || data.every(d => !d.n)) return;
+
+  // Global min/max across all groups
+  let gMin = Infinity, gMax = -Infinity;
+  data.forEach(d => {
+    if (d.n) { gMin = Math.min(gMin, d.min); gMax = Math.max(gMax, d.max); }
+  });
+  const range = gMax - gMin || 1;
+  const vMin = gMin - range * 0.1;
+  const vMax = gMax + range * 0.1;
+  const vRange = vMax - vMin;
+
+  const toY = v => padT + chartH - ((v - vMin) / vRange) * chartH;
+  const gap = chartW / data.length;
+  const boxW = Math.min(56, gap * 0.55);
+
+  // Grid
+  const gridLines = 5;
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px Inter, sans-serif';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= gridLines; i++) {
+    const val = vMin + (vRange * i / gridLines);
+    const y = toY(val);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillText(val.toFixed(1), padL - 6, y + 4);
+  }
+
+  // Baseline
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.beginPath(); ctx.moveTo(padL, padT + chartH); ctx.lineTo(W - padR, padT + chartH); ctx.stroke();
+
+  // Each box plot
+  data.forEach((d, i) => {
+    if (!d.n) return;
+    const cx = padL + gap * i + gap / 2;
+    const bx = cx - boxW / 2;
+
+    const yMin = toY(d.min);
+    const yQ1  = toY(d.q1);
+    const yMed = toY(d.med);
+    const yQ3  = toY(d.q3);
+    const yMax = toY(d.max);
+    const yAvg = toY(d.avg);
+
+    // Whisker lines
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 1.5;
+    // Lower whisker (min to Q1)
+    ctx.beginPath(); ctx.moveTo(cx, yQ1); ctx.lineTo(cx, yMin); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - boxW*0.25, yMin); ctx.lineTo(cx + boxW*0.25, yMin); ctx.stroke();
+    // Upper whisker (Q3 to max)
+    ctx.beginPath(); ctx.moveTo(cx, yQ3); ctx.lineTo(cx, yMax); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - boxW*0.25, yMax); ctx.lineTo(cx + boxW*0.25, yMax); ctx.stroke();
+
+    // Box (Q1 to Q3)
+    const boxH = yQ1 - yQ3;
+    ctx.fillStyle = baseColor + '25';
+    ctx.strokeStyle = baseColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(bx, yQ3, boxW, boxH, 3);
+    ctx.fill(); ctx.stroke();
+
+    // Median line
+    ctx.strokeStyle = baseColor;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(bx + 2, yMed); ctx.lineTo(bx + boxW - 2, yMed); ctx.stroke();
+
+    // Mean diamond
+    ctx.fillStyle = '#ef4444';
+    const ds = 4;
+    ctx.beginPath();
+    ctx.moveTo(cx, yAvg - ds);
+    ctx.lineTo(cx + ds, yAvg);
+    ctx.lineTo(cx, yAvg + ds);
+    ctx.lineTo(cx - ds, yAvg);
+    ctx.closePath();
+    ctx.fill();
+
+    // Stats annotation (right side of box)
+    ctx.fillStyle = '#475569';
+    ctx.font = '10px Inter, sans-serif';
+    ctx.textAlign = 'left';
+    const ax = bx + boxW + 5;
+    ctx.fillText('max ' + d.max.toFixed(1), ax, yMax + 3);
+    ctx.fillText('Q3 ' + d.q3.toFixed(1), ax, yQ3 + 3);
+    ctx.fillText('med ' + d.med.toFixed(1), ax, yMed + 3);
+    ctx.fillText('Q1 ' + d.q1.toFixed(1), ax, yQ1 + 3);
+    ctx.fillText('min ' + d.min.toFixed(1), ax, yMin + 3);
+
+    // n count above
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('n=' + d.n, cx, yMax - 10);
+
+    // Label below
+    ctx.save();
+    ctx.fillStyle = '#334155';
+    ctx.font = '12px Inter, sans-serif';
+    const ly = padT + chartH + 16;
+    if (data.length > 5) {
+      ctx.translate(cx, ly);
+      ctx.rotate(-Math.PI / 7);
+      ctx.textAlign = 'right';
+      ctx.fillText(d.label.length > 12 ? d.label.slice(0,11)+'…' : d.label, 0, 0);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.fillText(d.label.length > 16 ? d.label.slice(0,15)+'…' : d.label, cx, ly);
+    }
+    ctx.restore();
+  });
+
+  // Legend
+  ctx.font = '10px Inter, sans-serif';
+  ctx.textAlign = 'left';
+  // Median legend
+  ctx.strokeStyle = baseColor; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(padL + 4, 12); ctx.lineTo(padL + 18, 12); ctx.stroke();
+  ctx.fillStyle = '#475569';
+  ctx.fillText('중앙값(Median)', padL + 22, 15);
+  // Mean legend
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  ctx.moveTo(padL + 110, 8); ctx.lineTo(padL+114, 12); ctx.lineTo(padL+110, 16); ctx.lineTo(padL+106, 12); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#475569';
+  ctx.fillText('평균(Mean)', padL + 118, 15);
+}
+
+// ── 고정 헤더 높이 동기화 ──
+function syncHeaderSpacer() {
+  const h = document.getElementById('fixedHeader');
+  const s = document.querySelector('.header-spacer');
+  if (h && s) s.style.height = h.offsetHeight + 'px';
+}
+window.addEventListener('resize', syncHeaderSpacer);
 
 // ── 초기 로드 ──
-window.addEventListener('DOMContentLoaded', loadData);
+window.addEventListener('DOMContentLoaded', () => {
+  syncHeaderSpacer();
+  loadData();
+});
 </script>
 </body>
 </html>
