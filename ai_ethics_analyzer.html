@@ -86,7 +86,7 @@ body {
 }
 .analysis-chart-wrap {
   background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;
-  padding:16px; overflow-x:auto;
+  padding:16px;
 }
 .analysis-summary {
   margin-top:24px; background:#f8fafc; border:1px solid #e2e8f0;
@@ -108,7 +108,7 @@ body {
 /* Analysis loading */
 .analysis-loading {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:60px 20px; gap:16px; color:#475569; font-size:15px; font-weight:600;
+  height:100%; min-height:100%; gap:16px; color:#475569; font-size:15px; font-weight:600;
 }
 .analysis-spinner {
   width:40px; height:40px; border:4px solid #e2e8f0;
@@ -116,6 +116,53 @@ body {
   animation:spin .8s linear infinite;
 }
 @keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── Summary Sheet Modal ── */
+.summary-overlay {
+  display:none; position:fixed; inset:0; background:rgba(15,23,42,.55);
+  z-index:2000; backdrop-filter:blur(2px);
+}
+.summary-overlay.show { display:block; }
+.summary-box {
+  background:#fff; width:94%; max-width:1300px; height:88vh; border-radius:10px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  position:absolute; left:50%; top:30px; transform:translateX(-50%);
+  display:flex; flex-direction:column;
+}
+.summary-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 24px; background:linear-gradient(135deg,#1e293b,#334155);
+  border-radius:10px 10px 0 0; color:#fff;
+  cursor:grab; user-select:none; flex-shrink:0;
+}
+.summary-header:active { cursor:grabbing; }
+.summary-title { font-size:15px; font-weight:700; letter-spacing:.5px; }
+.summary-body {
+  flex:1; overflow:auto; padding:16px;
+  border-radius:0 0 10px 10px;
+}
+.summary-body table {
+  width:100%; border-collapse:collapse; font-size:11px; table-layout:auto;
+}
+.summary-body th {
+  background:#1e293b; color:#fff; padding:6px 8px; font-size:10px; font-weight:600;
+  border:1px solid #334155; text-align:center; white-space:nowrap;
+  position:sticky; top:0; z-index:1;
+}
+.summary-body td {
+  padding:5px 8px; border:1px solid #e2e8f0; text-align:center;
+  word-break:break-word; color:#334155;
+}
+.summary-body tr:nth-child(even) td { background:#f8fafc; }
+.summary-body tr:hover td { background:#eef2ff; }
+.summary-body .header-row td {
+  background:#e2e8f0; font-weight:700; color:#1e293b;
+  position:sticky; top:0; z-index:1; border:1px solid #cbd5e1;
+}
+.summary-loading {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  height:100%; min-height:100%; gap:16px; color:#475569; font-size:15px; font-weight:600;
+}
 
 .info-bar {
   background:#f8fafc; padding:6px 20px; border-bottom:1px solid #e2e8f0;
@@ -166,10 +213,10 @@ body {
 }
 
 .card-body { display:flex; gap:0; min-height:0; }
-.card-responses { flex:1; min-width:0; padding:10px 14px; overflow:hidden; }
+.card-responses { flex:1; min-width:0; padding:14px 14px 16px; overflow:hidden; }
 .card-kso-area {
   width:400px; min-width:340px; max-width:400px; border-left:1px solid #f1f5f9;
-  padding:8px 16px; display:flex; flex-direction:column; gap:6px;
+  padding:12px 16px; display:flex; flex-direction:column; gap:10px;
   background:#fafbfc; flex-shrink:0; align-items:center;
 }
 
@@ -180,19 +227,19 @@ body {
 }
 .kso-field-input {
   flex:1; border:1px solid #e2e8f0; border-radius:5px;
-  padding:5px 8px; font-size:12px; font-family:inherit; color:#475569;
-  transition:border-color .15s; background:#fff; text-align:center;
+  padding:7px 10px; font-size:12px; font-family:inherit; color:#475569;
+  transition:border-color .15s; background:#fff; text-align:left;
 }
 .kso-field-input:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,.12); }
 
-.resp-row { display:flex; align-items:flex-start; margin-bottom:8px; }
+.resp-row { display:flex; align-items:flex-start; margin-bottom:10px; }
 .resp-label-side {
   width:82px; min-width:82px; font-weight:600; font-size:11.5px;
-  padding-top:7px; color:#64748b; letter-spacing:.2px;
+  padding-top:9px; color:#64748b; letter-spacing:.2px;
 }
 .resp-text {
-  flex:1; min-width:0; border:1px solid #e2e8f0; border-radius:6px; padding:8px 10px;
-  min-height:42px; font-size:12.5px; line-height:1.6;
+  flex:1; min-width:0; border:1px solid #e2e8f0; border-radius:6px; padding:10px 12px;
+  min-height:52px; font-size:12.5px; line-height:1.6;
   background:#fff; white-space:pre-wrap; word-break:break-word;
   color:#475569;
 }
@@ -390,14 +437,14 @@ body {
         <select id="selScheme">
           <option value="전체">Scheme</option>
         </select>
-        <button class="btn btn-blue" onclick="openAnalysisModal('orientation')">Orientation 분석</button>
-        <button class="btn btn-blue" onclick="openAnalysisModal('scheme')">Scheme 분석</button>
       </div>
       <div class="topbar-right">
         <button class="btn btn-dark" onclick="openDocsModal()">Dilemma 보기</button>
+        <button class="btn btn-blue" onclick="openAnalysisModal('orientation')">Orientation 분석</button>
+        <button class="btn btn-blue" onclick="openAnalysisModal('scheme')">Scheme 분석</button>
         <button class="btn btn-gray" onclick="loadData()">Reload</button>
         <button class="btn btn-green" onclick="saveAll()">Save</button>
-        <button class="btn btn-red" onclick="window.print()">Print</button>
+        <button class="btn btn-red" onclick="printSummarySheet()">결과 시트 보기</button>
       </div>
     </div>
   </div>
@@ -467,6 +514,8 @@ body {
   </div>
 </div>
 
+<!-- Summary Sheet Modal (removed - opens Google Sheet directly) -->
+
 <script>
 // ──────────────────────────────────────────
 // ★ 설정: GAS 웹앱 URL
@@ -492,6 +541,15 @@ const DILEMMA_MAP = {
   '3': { r1:15, r2:16, keyword:17, scheme:18, orientation:19, keywordCol:'R', schemeCol:'S', orientationCol:'T' },
   '4': { r1:20, r2:21, keyword:22, scheme:23, orientation:24, keywordCol:'W', schemeCol:'X', orientationCol:'Y' },
 };
+
+// ── 결과 시트 탭 매핑 (GID) ──
+const SUMMARY_TABS = {
+  '1': { name: '※ AIQ1_Res_Sum', gid: '641366206' },
+  '2': { name: '※ AIQ2_Res_Sum', gid: '773322116' },
+  '3': { name: '※ AIQ3_Res_Sum', gid: '1804683253' },
+  '4': { name: '※ AIQ4_Res_Sum', gid: '911876446' },
+};
+const SPREADSHEET_ID = '1mxaqSIXvMMwGZz-hB5nZT92WuzX_5ITOkq_JrLgOmww';
 
 // ── CSV 파싱 ──
 function parseCSV(text) {
@@ -1082,15 +1140,11 @@ async function openAnalysisModal(mode) {
   const freqWrap = document.createElement('div');
   freqWrap.className = 'analysis-chart-wrap';
   const freqCanvas = document.createElement('canvas');
-  const freqLogicW = Math.max(labels.length * 100 + 100, 400);
-  freqCanvas.width = freqLogicW * dpr;
-  freqCanvas.height = 280 * dpr;
-  freqCanvas.style.width = freqLogicW + 'px';
+  freqCanvas.style.width = '100%';
   freqCanvas.style.height = '280px';
   freqWrap.appendChild(freqCanvas);
   freqSec.append(freqTitle, freqWrap);
   wrap.appendChild(freqSec);
-  drawFreqChart(freqCanvas, labels.map(k => ({ label: k, count: groups[k].count })), dpr);
 
   // ── 2) Box Plots ──
   const bpN2  = labels.map(k => ({ label:k, ...boxStats(groups[k].n2) }));
@@ -1103,6 +1157,7 @@ async function openAnalysisModal(mode) {
     { title: 'Age (by ' + groupLabel + ')',       data: bpAge, color: '#10b981' },
   ];
 
+  const pendingCanvases = [];
   chartDefs.forEach(cd => {
     const sec = document.createElement('div');
     sec.className = 'analysis-chart-section';
@@ -1112,15 +1167,12 @@ async function openAnalysisModal(mode) {
     const cw = document.createElement('div');
     cw.className = 'analysis-chart-wrap';
     const canvas = document.createElement('canvas');
-    const logicW = Math.max(labels.length * 120 + 100, 500);
-    canvas.width = logicW * dpr;
-    canvas.height = 300 * dpr;
-    canvas.style.width = logicW + 'px';
+    canvas.style.width = '100%';
     canvas.style.height = '300px';
     cw.appendChild(canvas);
     sec.append(t, cw);
     wrap.appendChild(sec);
-    drawBoxPlot(canvas, cd.data, cd.color, dpr);
+    pendingCanvases.push({ canvas, data: cd.data, color: cd.color });
   });
 
   // ── 3) Summary table ──
@@ -1156,6 +1208,25 @@ async function openAnalysisModal(mode) {
   body.appendChild(wrap);
   body.scrollTop = 0;
 
+  // DOM에 삽입된 후 실제 너비로 Canvas 그리기
+  requestAnimationFrame(() => {
+    // Frequency chart
+    const fw = freqCanvas.parentElement.clientWidth - 32;
+    freqCanvas.width = fw * dpr;
+    freqCanvas.height = 280 * dpr;
+    freqCanvas.style.width = fw + 'px';
+    drawFreqChart(freqCanvas, labels.map(k => ({ label: k, count: groups[k].count })), dpr);
+
+    // Box plots
+    pendingCanvases.forEach(pc => {
+      const pw = pc.canvas.parentElement.clientWidth - 32;
+      pc.canvas.width = pw * dpr;
+      pc.canvas.height = 300 * dpr;
+      pc.canvas.style.width = pw + 'px';
+      drawBoxPlot(pc.canvas, pc.data, pc.color, dpr);
+    });
+  });
+
   // 카드 목록도 갱신
   renderCards();
 }
@@ -1166,7 +1237,6 @@ function closeAnalysis() {
 }
 
 function printAnalysis() {
-  // A4 세로 방향 인쇄용 스타일 삽입
   const style = document.createElement('style');
   style.id = 'analysis-print-style';
   style.textContent = '@media print { @page { size:A4 portrait; margin:12mm; } }';
@@ -1176,6 +1246,15 @@ function printAnalysis() {
   window.print();
   document.body.classList.remove('printing-analysis');
   style.remove();
+}
+
+// ── 결과 시트 보기 (Google Sheet 읽기 모드로 새 창에 열기) ──
+function printSummarySheet() {
+  const dil = document.getElementById('selDilemma').value;
+  const tab = SUMMARY_TABS[dil];
+  const url = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
+    + '/edit?gid=' + tab.gid + '#gid=' + tab.gid;
+  window.open(url, '_blank');
 }
 
 function drawFreqChart(canvas, data, dpr) {
