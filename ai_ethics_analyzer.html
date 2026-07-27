@@ -10,7 +10,7 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
   font-family: 'Inter', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-  background:#eef1f5; color:#2c3e50; font-size:16px;
+  background:#eef1f5; color:#2c3e50; font-size:14px;
 }
 .page-wrap { max-width:80%; margin:0 auto; }
 
@@ -20,8 +20,8 @@ body {
 }
 
 .page-title {
-  text-align:center; font-size:24px; font-weight:700;
-  padding:16px 0 10px; background:linear-gradient(135deg,#1e293b,#334155);
+  text-align:center; font-size:21px; font-weight:700;
+  padding:14px 0 8px; background:linear-gradient(135deg,#1e293b,#334155);
   color:#fff; letter-spacing:2px;
   border-bottom:none;
 }
@@ -36,8 +36,8 @@ body {
 .topbar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 
 .topbar select {
-  padding:6px 12px; border:1px solid #cbd5e1; border-radius:6px;
-  font-size:15px; background:#fff; cursor:pointer; min-width:110px; max-width:200px;
+  padding:5px 10px; border:1px solid #cbd5e1; border-radius:6px;
+  font-size:13px; background:#fff; cursor:pointer; min-width:100px; max-width:200px;
   font-family:inherit; color:#334155;
   transition:border-color .15s;
   flex:0 0 auto; width:auto;
@@ -45,8 +45,8 @@ body {
 .topbar select:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,.15); }
 
 .btn {
-  padding:7px 16px; border:none; border-radius:6px; cursor:pointer;
-  font-size:15px; font-weight:600; font-family:inherit;
+  padding:6px 14px; border:none; border-radius:6px; cursor:pointer;
+  font-size:13px; font-weight:600; font-family:inherit;
   transition:all .15s; letter-spacing:.3px;
 }
 .btn:hover { transform:translateY(-1px); box-shadow:0 2px 6px rgba(0,0,0,.15); }
@@ -76,13 +76,13 @@ body {
   cursor:grab; user-select:none; flex-shrink:0;
 }
 .analysis-header:active { cursor:grabbing; }
-.analysis-title { font-size:17px; font-weight:700; letter-spacing:.5px; }
-.analysis-subtitle { font-size:14px; color:#94a3b8; margin-left:12px; font-weight:400; }
+.analysis-title { font-size:15px; font-weight:700; letter-spacing:.5px; }
+.analysis-subtitle { font-size:12px; color:#94a3b8; margin-left:12px; font-weight:400; }
 .analysis-body { padding:24px; flex:1; overflow-y:auto; border-radius:0 0 10px 10px; }
 .analysis-charts { display:flex; flex-direction:column; gap:28px; }
 .analysis-chart-section { }
 .analysis-chart-title {
-  font-size:16px; font-weight:700; color:#1e293b; margin-bottom:12px;
+  font-size:14px; font-weight:700; color:#1e293b; margin-bottom:12px;
   padding-bottom:6px; border-bottom:2px solid #e2e8f0;
 }
 .analysis-chart-wrap {
@@ -94,11 +94,11 @@ body {
   border-radius:8px; overflow-x:auto;
 }
 .analysis-summary table {
-  width:100%; border-collapse:collapse; font-size:15px;
+  width:100%; border-collapse:collapse; font-size:13px;
 }
 .analysis-summary th {
-  background:#1e293b; color:#fff; padding:8px 12px; text-align:center;
-  font-size:14px; font-weight:600; letter-spacing:.3px;
+  background:#1e293b; color:#fff; padding:6px 10px; text-align:center;
+  font-size:12px; font-weight:600; letter-spacing:.3px;
 }
 .analysis-summary td {
   padding:7px 12px; border-bottom:1px solid #e2e8f0; text-align:center;
@@ -109,14 +109,58 @@ body {
 /* Analysis loading */
 .analysis-loading {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  height:100%; min-height:100%; gap:16px; color:#475569; font-size:17px; font-weight:600;
+  height:100%; min-height:100%; gap:20px; color:#475569; font-size:15px; font-weight:600;
 }
-.analysis-spinner {
-  width:40px; height:40px; border:4px solid #e2e8f0;
-  border-top-color:#3b82f6; border-radius:50%;
-  animation:spin .8s linear infinite;
+.analysis-loading .loading-text {
+  background:linear-gradient(90deg,#334155,#3b82f6,#8b5cf6,#334155);
+  background-size:300% 100%;
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  animation:shimmerText 2s ease-in-out infinite;
 }
-@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Shared dynamic spinner */
+.dynamic-spinner {
+  position:relative; width:56px; height:56px;
+}
+.dynamic-spinner .ring {
+  position:absolute; inset:0; border-radius:50%;
+  border:3px solid transparent;
+}
+.dynamic-spinner .ring:nth-child(1) {
+  border-top-color:#3b82f6; border-right-color:#3b82f6;
+  animation:spinRing 1s cubic-bezier(.6,.2,.4,.8) infinite;
+}
+.dynamic-spinner .ring:nth-child(2) {
+  inset:6px; border-bottom-color:#8b5cf6; border-left-color:#8b5cf6;
+  animation:spinRing 1.4s cubic-bezier(.6,.2,.4,.8) infinite reverse;
+}
+.dynamic-spinner .ring:nth-child(3) {
+  inset:12px; border-top-color:#10b981;
+  animation:spinRing .9s linear infinite;
+}
+.dynamic-spinner .dot {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+}
+.dynamic-spinner .dot::after {
+  content:''; width:8px; height:8px; border-radius:50%;
+  background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+  animation:pulse 1.2s ease-in-out infinite;
+}
+
+/* Loading bar */
+.loading-bar-track {
+  width:180px; height:4px; background:#e2e8f0; border-radius:4px; overflow:hidden; margin-top:4px;
+}
+.loading-bar-fill {
+  height:100%; width:30%; border-radius:4px;
+  background:linear-gradient(90deg,#3b82f6,#8b5cf6,#10b981);
+  animation:slideBar 1.5s ease-in-out infinite;
+}
+
+@keyframes spinRing { to { transform:rotate(360deg); } }
+@keyframes pulse { 0%,100%{transform:scale(.8);opacity:.6} 50%{transform:scale(1.2);opacity:1} }
+@keyframes slideBar { 0%{transform:translateX(-100%)} 50%{transform:translateX(300%)} 100%{transform:translateX(600%)} }
+@keyframes shimmerText { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
 
 /* ── Summary Sheet Modal ── */
 .summary-overlay {
@@ -137,16 +181,16 @@ body {
   cursor:grab; user-select:none; flex-shrink:0;
 }
 .summary-header:active { cursor:grabbing; }
-.summary-title { font-size:17px; font-weight:700; letter-spacing:.5px; }
+.summary-title { font-size:15px; font-weight:700; letter-spacing:.5px; }
 .summary-body {
   flex:1; overflow:auto; padding:16px;
   border-radius:0 0 10px 10px;
 }
 .summary-body table {
-  width:100%; border-collapse:collapse; font-size:13px; table-layout:auto;
+  width:100%; border-collapse:collapse; font-size:12px; table-layout:auto;
 }
 .summary-body th {
-  background:#1e293b; color:#fff; padding:6px 8px; font-size:12px; font-weight:600;
+  background:#1e293b; color:#fff; padding:5px 7px; font-size:11px; font-weight:600;
   border:1px solid #334155; text-align:center; white-space:nowrap;
   position:sticky; top:0; z-index:1;
 }
@@ -162,12 +206,18 @@ body {
 }
 .summary-loading {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  height:100%; min-height:100%; gap:16px; color:#475569; font-size:17px; font-weight:600;
+  height:100%; min-height:100%; gap:20px; color:#475569; font-size:15px; font-weight:600;
+}
+.summary-loading .loading-text {
+  background:linear-gradient(90deg,#334155,#3b82f6,#8b5cf6,#334155);
+  background-size:300% 100%;
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  animation:shimmerText 2s ease-in-out infinite;
 }
 
 .info-bar {
   background:#f8fafc; padding:6px 20px; border-bottom:1px solid #e2e8f0;
-  font-size:14px; color:#94a3b8; display:flex; justify-content:space-between;
+  font-size:12px; color:#94a3b8; display:flex; justify-content:space-between;
 }
 .info-bar-inner { max-width:80%; margin:0 auto; display:flex; justify-content:space-between; width:100%; }
 
@@ -187,29 +237,29 @@ body {
 
 .card-header {
   display:flex; align-items:center; flex-wrap:wrap; gap:8px;
-  padding:10px 16px; border-bottom:1px solid #f1f5f9; background:#f8fafc;
-  font-size:15px;
+  padding:8px 14px; border-bottom:1px solid #f1f5f9; background:#f8fafc;
+  font-size:13px;
 }
 .card-header .resid {
   font-weight:700; color:#1e293b;
   margin-right:6px;
 }
 .card-header .btn-modal {
-  padding:3px 10px; border:1px solid #cbd5e1; border-radius:5px;
-  background:#fff; color:#3b82f6; font-size:13px; font-weight:600;
+  padding:3px 8px; border:1px solid #cbd5e1; border-radius:5px;
+  background:#fff; color:#3b82f6; font-size:12px; font-weight:600;
   cursor:pointer; font-family:inherit; transition:all .15s;
   white-space:nowrap;
 }
 .card-header .btn-modal:hover { background:#3b82f6; color:#fff; border-color:#3b82f6; }
 .card-header .meta-tag {
-  font-weight:600; color:#475569; font-size:14px;
-  background:#e2e8f0; padding:2px 8px; border-radius:4px;
+  font-weight:600; color:#475569; font-size:12px;
+  background:#e2e8f0; padding:2px 7px; border-radius:4px;
 }
 .card-header .meta-tag .meta-label { color:#94a3b8; font-weight:500; margin-right:3px; }
 
 .card-header .kso-label {
   margin-left:auto; font-weight:600; color:#64748b; cursor:default;
-  width:400px; text-align:center; flex-shrink:0; font-size:13px;
+  width:400px; text-align:center; flex-shrink:0; font-size:12px;
   letter-spacing:.5px;
 }
 
@@ -223,25 +273,25 @@ body {
 
 .kso-field-row { display:flex; align-items:center; gap:6px; width:100%; }
 .kso-field-label {
-  font-size:13px; font-weight:600; color:#64748b;
+  font-size:12px; font-weight:600; color:#64748b;
   min-width:72px; letter-spacing:.3px; text-align:right;
 }
 .kso-field-input {
   flex:1; border:2px solid #94a3b8; border-radius:5px;
-  padding:12px 10px; font-size:14px; font-family:inherit; color:#1e293b;
+  padding:10px 8px; font-size:13px; font-family:inherit; color:#1e293b;
   transition:border-color .15s; background:#fff; text-align:left;
-  min-height:42px; font-weight:600;
+  min-height:38px; font-weight:600;
 }
 .kso-field-input:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,.12); }
 
 .resp-row { display:flex; align-items:flex-start; margin-bottom:10px; }
 .resp-label-side {
-  width:90px; min-width:90px; font-weight:600; font-size:13.5px;
-  padding-top:9px; color:#64748b; letter-spacing:.2px;
+  width:85px; min-width:85px; font-weight:600; font-size:12px;
+  padding-top:8px; color:#64748b; letter-spacing:.2px;
 }
 .resp-text {
-  flex:1; min-width:0; border:1px solid #e2e8f0; border-radius:6px; padding:10px 12px;
-  min-height:52px; font-size:14.5px; line-height:1.6;
+  flex:1; min-width:0; border:1px solid #e2e8f0; border-radius:6px; padding:8px 10px;
+  min-height:46px; font-size:13px; line-height:1.6;
   background:#fff; white-space:pre-wrap; word-break:break-word;
   color:#475569;
 }
@@ -268,12 +318,12 @@ body {
 }
 .modal-header:active { cursor:grabbing; }
 .modal-header-left { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
-.modal-field-label { font-size:15px; font-weight:600; color:#94a3b8; }
-.modal-field-value { font-size:16px; font-weight:600; color:#fbbf24; margin-left:4px; }
+.modal-field-label { font-size:13px; font-weight:600; color:#94a3b8; }
+.modal-field-value { font-size:14px; font-weight:600; color:#fbbf24; margin-left:4px; }
 .modal-sep { width:1px; height:20px; background:rgba(255,255,255,.2); }
 .modal-close-btn {
   background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.2);
-  border-radius:6px; padding:6px 14px; font-size:14px; font-weight:600; cursor:pointer;
+  border-radius:6px; padding:5px 12px; font-size:13px; font-weight:600; cursor:pointer;
   transition:background .15s;
 }
 .modal-close-btn:hover { background:rgba(255,255,255,.25); }
@@ -282,24 +332,24 @@ body {
 .modal-dilemma { padding:16px 24px; border-bottom:1px solid #f1f5f9; }
 .modal-dilemma:last-child { border-bottom:none; }
 .modal-dilemma-header { display:flex; align-items:center; gap:16px; margin-bottom:10px; }
-.modal-dilemma-title { font-size:15.5px; font-weight:600; color:#1e293b; flex:1; }
-.modal-dilemma-kso-label { font-size:14px; font-weight:600; color:#64748b; width:220px; text-align:center; }
+.modal-dilemma-title { font-size:14px; font-weight:600; color:#1e293b; flex:1; }
+.modal-dilemma-kso-label { font-size:12px; font-weight:600; color:#64748b; width:220px; text-align:center; }
 .modal-dilemma-body { display:flex; gap:16px; align-items:flex-start; }
 .modal-resp-area { flex:1; display:flex; flex-direction:column; gap:8px; }
 .modal-resp-row { display:flex; align-items:flex-start; gap:10px; }
-.modal-resp-label { min-width:85px; font-size:14px; font-weight:600; color:#64748b; padding-top:7px; }
+.modal-resp-label { min-width:85px; font-size:12px; font-weight:600; color:#64748b; padding-top:7px; }
 .modal-resp-text {
   flex:1; border:1px solid #e2e8f0; border-radius:6px; padding:8px 10px;
-  font-size:15px; background:#f8fafc; color:#475569; line-height:1.6;
+  font-size:13px; background:#f8fafc; color:#475569; line-height:1.6;
   min-height:36px; font-family:inherit;
   white-space:pre-wrap; word-break:break-word;
 }
 .modal-kso-area { width:220px; min-width:220px; display:flex; flex-direction:column; gap:6px; justify-content:center; }
 .modal-kso-row { display:flex; align-items:center; gap:6px; }
-.modal-kso-label { font-size:13px; font-weight:600; color:#64748b; min-width:72px; }
+.modal-kso-label { font-size:12px; font-weight:600; color:#64748b; min-width:72px; }
 .modal-kso-value {
   flex:1; border:1px solid #e2e8f0; border-radius:5px; padding:5px 8px;
-  font-size:14px; background:#f1f5f9; color:#475569; font-family:inherit;
+  font-size:12px; background:#f1f5f9; color:#475569; font-family:inherit;
   min-height:26px;
 }
 
@@ -322,24 +372,30 @@ body {
   cursor:grab; user-select:none;
 }
 .docs-modal-header:active { cursor:grabbing; }
-.docs-modal-title { font-size:16px; font-weight:600; letter-spacing:.5px; }
+.docs-modal-title { font-size:14px; font-weight:600; letter-spacing:.5px; }
 .docs-modal-iframe { flex:1; border:none; border-radius:0 0 10px 10px; }
 
 /* ── Status ── */
 .status-toast {
   position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
   background:#1e293b; color:#fff; padding:10px 28px; border-radius:8px;
-  font-size:15px; z-index:999; display:none; box-shadow:0 4px 16px rgba(0,0,0,.2);
+  font-size:13px; z-index:999; display:none; box-shadow:0 4px 16px rgba(0,0,0,.2);
   font-weight:500;
 }
 .status-toast.show { display:block; }
 
 /* ── Loading ── */
 .loading-overlay {
-  position:fixed; inset:0; background:rgba(255,255,255,.8);
-  display:flex; align-items:center; justify-content:center;
-  z-index:1000; font-size:17px; font-weight:600; color:#334155;
-  backdrop-filter:blur(2px);
+  position:fixed; inset:0; background:rgba(248,250,252,.92);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+  z-index:1000; font-size:15px; font-weight:600; color:#334155;
+  backdrop-filter:blur(4px);
+}
+.loading-overlay .loading-text {
+  background:linear-gradient(90deg,#334155,#3b82f6,#8b5cf6,#334155);
+  background-size:300% 100%;
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  animation:shimmerText 2s ease-in-out infinite;
 }
 .loading-overlay.hidden { display:none; }
 
@@ -419,7 +475,11 @@ body {
 <div class="page-wrap">
 
 <!-- Loading -->
-<div class="loading-overlay" id="loadingOverlay">데이터 로딩 중...</div>
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="dynamic-spinner"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div></div>
+  <div class="loading-text">데이터 로딩 중...</div>
+  <div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
+</div>
 
 <!-- Fixed Header -->
 <div class="fixed-header" id="fixedHeader">
@@ -433,21 +493,21 @@ body {
           <option value="3">Dilemma-03</option>
           <option value="4">Dilemma-04</option>
         </select>
-        <select id="selOrientation">
-          <option value="전체">Orientation</option>
-        </select>
         <select id="selScheme">
           <option value="전체">Scheme</option>
+        </select>
+        <select id="selOrientation">
+          <option value="전체">Orientation</option>
         </select>
         <span id="infoRight" style="font-size:14px;font-weight:600;color:#64748b;white-space:nowrap;">총 0건</span>
       </div>
       <div class="topbar-right" style="margin-left:auto;">
-        <button class="btn btn-dark" onclick="openDocsModal()">Dilemma 보기</button>
-        <button class="btn btn-blue" onclick="openAnalysisModal('orientation')">Orientation 분석</button>
+        <button class="btn btn-dark" onclick="openDocsModal()">Dilemma</button>
         <button class="btn btn-blue" onclick="openAnalysisModal('scheme')">Scheme 분석</button>
+        <button class="btn btn-blue" onclick="openAnalysisModal('orientation')">Orientation 분석</button>
         <button class="btn btn-gray" onclick="loadData()">Reload</button>
         <button class="btn btn-green" onclick="saveAll()">Save</button>
-        <button class="btn btn-red" onclick="printSummarySheet()">결과 시트 보기</button>
+        <button class="btn btn-red" onclick="printSummarySheet()">결과 시트</button>
       </div>
     </div>
   </div>
@@ -627,7 +687,7 @@ function normalizeGASValue(val) {
 async function loadFromGAS() {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     const cacheBuster = '?t=' + Date.now();
     const resp = await fetch(GAS_URL + cacheBuster, { signal: controller.signal, cache: 'no-store' });
     clearTimeout(timeoutId);
@@ -650,6 +710,7 @@ async function loadFromGAS() {
 
     renderCards();
     showToast('데이터 로드 완료: ' + allData.length + '건');
+    loadedFromCSV = false;
     return true;
   } catch(e) {
     console.error('GAS 로드 실패:', e);
@@ -657,7 +718,9 @@ async function loadFromGAS() {
   }
 }
 
-// ── CSV에서 읽기 ──
+// ── CSV에서 읽기 (읽기 전용 — 콤마가 포함된 셀이 분리될 수 있으므로 저장 불가) ──
+let loadedFromCSV = false;
+
 async function loadFromCSV() {
   const csvController = new AbortController();
   const csvTimeout = setTimeout(() => csvController.abort(), 10000);
@@ -669,11 +732,25 @@ async function loadFromCSV() {
   const rows = parseCSV(text);
   const dataRows = rows.slice(HEADER_ROWS);
 
+  // CSV 헤더 행에서 예상 컬럼 수 확인 (25컬럼 = A~Y)
+  const expectedCols = COL_LETTERS.length; // 25
+  const headerCols = rows.length > 0 ? rows[0].length : 0;
+  if (headerCols > expectedCols + 2) {
+    console.warn('CSV 컬럼 수 초과 감지: 헤더 ' + headerCols + '컬럼 (예상 ' + expectedCols + '). 콤마로 인한 셀 분리 가능성.');
+  }
+
   allData = [];
   dataRows.forEach((cols, idx) => {
     if (!cols[0] || cols[0].trim() === '') return;
     const resId = (cols[1] || '').trim();
     if (resId === 'Ready') return;
+
+    // 컬럼 수가 25를 초과하면 콤마로 인한 분리 가능성 → 초과분을 앞 컬럼에 병합
+    if (cols.length > expectedCols) {
+      // 초과된 컬럼들을 마지막 유효 컬럼(Y=24)에 콤마로 재결합
+      const overflow = cols.splice(expectedCols);
+      cols[expectedCols - 1] = [cols[expectedCols - 1], ...overflow].join(',');
+    }
 
     // Ensure 25 columns
     while (cols.length < 25) cols.push('');
@@ -689,8 +766,9 @@ async function loadFromCSV() {
     });
   });
 
+  loadedFromCSV = true;
   renderCards();
-  showToast('CSV 데이터 로드 완료: ' + allData.length + '건');
+  showToast('⚠ CSV 읽기 전용 모드 (GAS 연결 실패). 저장은 GAS 연결 후 가능합니다.', true);
 }
 
 // ── 점수 포맷 (소수점 2자리, IRD 등 텍스트는 그대로) ──
@@ -786,6 +864,17 @@ function renderCards() {
   }
 
   data.forEach(row => container.appendChild(buildCard(row, dil)));
+
+  // 모든 카드가 DOM에 삽입된 후 textarea 높이 조정
+  // double rAF로 레이아웃 계산이 완료된 후 실행
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      container.querySelectorAll('textarea.editable-field').forEach(ta => {
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+      });
+    });
+  });
 }
 
 // ── 개별 카드 생성 ──
@@ -837,7 +926,7 @@ function buildCard(row, dilemma) {
   kwRow.className = 'resp-row';
   const kwLbl = document.createElement('div');
   kwLbl.className = 'resp-label-side';
-  kwLbl.textContent = 'R-Clarification';
+  kwLbl.textContent = 'R-Clarify';
   const kwInput = document.createElement('textarea');
   kwInput.className = 'kso-field-input editable-field';
   kwInput.style.cssText = 'flex:1;min-width:0;resize:none;overflow:hidden;';
@@ -849,7 +938,6 @@ function buildCard(row, dilemma) {
   // Auto-resize height
   const autoResize = () => { kwInput.style.height = 'auto'; kwInput.style.height = kwInput.scrollHeight + 'px'; };
   kwInput.addEventListener('input', autoResize);
-  requestAnimationFrame(autoResize);
   kwRow.append(kwLbl, kwInput);
   respArea.appendChild(kwRow);
 
@@ -917,6 +1005,12 @@ async function saveAll() {
     return;
   }
 
+  // CSV 읽기 전용 모드일 때 저장 차단 (콤마로 인한 컬럼 분리 방지)
+  if (loadedFromCSV) {
+    showToast('CSV 읽기 전용 모드에서는 저장할 수 없습니다. Reload로 GAS 재연결을 시도하세요.', true);
+    return;
+  }
+
   const inputs = document.querySelectorAll('.editable-field');
   if (inputs.length === 0) {
     showToast('저장할 항목이 없습니다.', true);
@@ -936,7 +1030,7 @@ async function saveAll() {
     });
   });
 
-  showLoading(true);
+  showLoading(true, '저장 중...');
   try {
     const resp = await fetch(GAS_URL, {
       method: 'POST',
@@ -983,8 +1077,13 @@ document.getElementById('selOrientation').addEventListener('change', renderCards
 document.getElementById('selScheme').addEventListener('change', renderCards);
 
 // ── UI 유틸 ──
-function showLoading(show) {
-  document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+function showLoading(show, msg) {
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.classList.toggle('hidden', !show);
+  if (msg) {
+    const textEl = overlay.querySelector('.loading-text');
+    if (textEl) textEl.textContent = msg;
+  }
 }
 function showToast(msg, isError) {
   const t = document.getElementById('toast');
@@ -1044,7 +1143,7 @@ function openModal(row) {
           </div>
         </div>
         <div class="modal-kso-area">
-          <div class="modal-kso-row"><span class="modal-kso-label">R-Clarification</span><div class="modal-kso-value">${escHtml(kw)}</div></div>
+          <div class="modal-kso-row"><span class="modal-kso-label">R-Clarify</span><div class="modal-kso-value">${escHtml(kw)}</div></div>
           <div class="modal-kso-row"><span class="modal-kso-label">Scheme</span><div class="modal-kso-value">${escHtml(sc)}</div></div>
           <div class="modal-kso-row"><span class="modal-kso-label">Orientation</span><div class="modal-kso-value">${escHtml(ori)}</div></div>
         </div>
@@ -1133,7 +1232,7 @@ async function openAnalysisModal(mode) {
   document.getElementById('analysisTitle').textContent = groupLabel + '별 분석';
   document.getElementById('analysisSubtitle').textContent = dilLabel + ' 기준';
   const body = document.getElementById('analysisBody');
-  body.innerHTML = '<div class="analysis-loading"><div class="analysis-spinner"></div><div>데이터 분석 중...</div></div>';
+  body.innerHTML = '<div class="analysis-loading"><div class="dynamic-spinner"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div></div><div class="loading-text">데이터 분석 중...</div><div class="loading-bar-track"><div class="loading-bar-fill"></div></div></div>';
   document.getElementById('analysisOverlay').classList.add('show');
   document.body.style.overflow = 'hidden';
 
@@ -1146,8 +1245,8 @@ async function openAnalysisModal(mode) {
         allData = [];
         json.data.forEach(r => {
           if (r.B && r.B.trim() === 'Ready') return;
-          const rawArr = COL_LETTERS.split('').map(c => r[c] || '');
-          allData.push({ rowNum: r.rowNum, raw: rawArr, A: r.A, B: r.B, C: r.C, D: r.D, E: r.E });
+          const rawArr = COL_LETTERS.split('').map(c => normalizeGASValue(r[c]));
+          allData.push({ rowNum: r.rowNum, raw: rawArr, A: normalizeGASValue(r.A), B: normalizeGASValue(r.B), C: normalizeGASValue(r.C), D: normalizeGASValue(r.D), E: normalizeGASValue(r.E) });
         });
       }
     }
