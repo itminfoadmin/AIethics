@@ -439,8 +439,9 @@ body {
         <select id="selScheme">
           <option value="전체">Scheme</option>
         </select>
+        <span id="infoRight" style="font-size:14px;font-weight:600;color:#64748b;white-space:nowrap;">총 0건</span>
       </div>
-      <div class="topbar-right">
+      <div class="topbar-right" style="margin-left:auto;">
         <button class="btn btn-dark" onclick="openDocsModal()">Dilemma 보기</button>
         <button class="btn btn-blue" onclick="openAnalysisModal('orientation')">Orientation 분석</button>
         <button class="btn btn-blue" onclick="openAnalysisModal('scheme')">Scheme 분석</button>
@@ -448,12 +449,6 @@ body {
         <button class="btn btn-green" onclick="saveAll()">Save</button>
         <button class="btn btn-red" onclick="printSummarySheet()">결과 시트 보기</button>
       </div>
-    </div>
-  </div>
-  <div class="info-bar">
-    <div class="info-bar-inner">
-      <span id="infoLeft">필터: Dilemma-01</span>
-      <span id="infoRight">총 0건</span>
     </div>
   </div>
 </div>
@@ -608,12 +603,33 @@ async function loadData() {
   }
 }
 
+// ── GAS 날짜 문자열 정규화 ──
+// GAS가 날짜 셀을 JS Date 객체로 반환하면 "Mon Jul 27 2026 00:00:00 GMT..." 형태가 됨
+// 이를 감지하여 YYYY/MM/DD 형식으로 복원
+function normalizeGASValue(val) {
+  if (!val || typeof val !== 'string') return val || '';
+  const s = val.trim();
+  // ISO 8601 형식: "2026-07-27T00:00:00.000Z" 등
+  const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}/);
+  if (isoMatch) return isoMatch[1] + '/' + isoMatch[2] + '/' + isoMatch[3];
+  // JS Date.toString() 형식: "Mon Jul 27 2026 00:00:00 GMT..."
+  const jsDateMatch = s.match(/^[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})\s+\d{2}:\d{2}:\d{2}/);
+  if (jsDateMatch) {
+    const months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+    const mm = months[jsDateMatch[1]] || '01';
+    const dd = jsDateMatch[2].padStart(2, '0');
+    return jsDateMatch[3] + '/' + mm + '/' + dd;
+  }
+  return s;
+}
+
 // ── GAS에서 읽기 ──
 async function loadFromGAS() {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
-    const resp = await fetch(GAS_URL, { signal: controller.signal });
+    const cacheBuster = '?t=' + Date.now();
+    const resp = await fetch(GAS_URL + cacheBuster, { signal: controller.signal, cache: 'no-store' });
     clearTimeout(timeoutId);
     const json = await resp.json();
     if (json.status !== 'ok') throw new Error(json.message);
@@ -622,11 +638,13 @@ async function loadFromGAS() {
     json.data.forEach(r => {
       if (r.B && r.B.trim() === 'Ready') return;
 
-      const rawArr = COL_LETTERS.split('').map(c => r[c] || '');
+      const rawArr = COL_LETTERS.split('').map(c => normalizeGASValue(r[c]));
       allData.push({
         rowNum: r.rowNum,
         raw: rawArr,
-        A: r.A, B: r.B, C: r.C, D: r.D, E: r.E,
+        A: normalizeGASValue(r.A), B: normalizeGASValue(r.B),
+        C: normalizeGASValue(r.C), D: normalizeGASValue(r.D),
+        E: normalizeGASValue(r.E),
       });
     });
 
@@ -643,7 +661,8 @@ async function loadFromGAS() {
 async function loadFromCSV() {
   const csvController = new AbortController();
   const csvTimeout = setTimeout(() => csvController.abort(), 10000);
-  const resp = await fetch(CSV_URL, { signal: csvController.signal });
+  const csvCacheBuster = (CSV_URL.includes('?') ? '&' : '?') + '_t=' + Date.now();
+  const resp = await fetch(CSV_URL + csvCacheBuster, { signal: csvController.signal, cache: 'no-store' });
   clearTimeout(csvTimeout);
   if (!resp.ok) throw new Error('CSV fetch 실패: ' + resp.status);
   const text = await resp.text();
@@ -696,18 +715,26 @@ function populateFilterDropdowns() {
     if (sch) schSet.add(sch);
   });
 
-  const fillSelect = (sel, labelText, valSet) => {
+  const fillSelect = (sel, labelText, valSet, stripWord) => {
     const prev = sel.value;
     sel.innerHTML = '';
     const def = document.createElement('option');
     def.value = '전체'; def.textContent = labelText;
+    def.disabled = true; def.hidden = true;
     sel.appendChild(def);
     const allOpt = document.createElement('option');
     allOpt.value = '전체'; allOpt.textContent = '전체 (All)';
     sel.appendChild(allOpt);
     Array.from(valSet).sort().forEach(v => {
       const opt = document.createElement('option');
-      opt.value = v; opt.textContent = v;
+      opt.value = v;
+      // 하위 항목에서 카테고리 단어 제거 (예: "Care Orientation" → "Care")
+      let displayText = v;
+      if (stripWord) {
+        displayText = v.replace(new RegExp('\\s*' + stripWord + '\\s*', 'gi'), ' ').trim();
+        if (!displayText) displayText = v; // 제거 후 비어있으면 원본 유지
+      }
+      opt.textContent = displayText;
       sel.appendChild(opt);
     });
     // 이전 선택 복원 (가능하면)
@@ -715,8 +742,8 @@ function populateFilterDropdowns() {
     else sel.value = '전체';
   };
 
-  fillSelect(document.getElementById('selOrientation'), 'Orientation', oriSet);
-  fillSelect(document.getElementById('selScheme'), 'Scheme', schSet);
+  fillSelect(document.getElementById('selOrientation'), 'Orientation', oriSet, 'Orientation');
+  fillSelect(document.getElementById('selScheme'), 'Scheme', schSet, 'Scheme');
 }
 
 // ── 필터된 데이터 ──
@@ -751,10 +778,6 @@ function renderCards() {
 
   const oriFilter = document.getElementById('selOrientation').value;
   const schFilter = document.getElementById('selScheme').value;
-  let filterText = '필터: Dilemma-0' + dil;
-  if (oriFilter !== '전체') filterText += ' | Orientation=' + oriFilter;
-  if (schFilter !== '전체') filterText += ' | Scheme=' + schFilter;
-  document.getElementById('infoLeft').textContent = filterText;
   document.getElementById('infoRight').textContent = '총 ' + data.length + '건';
 
   if (data.length === 0) {
@@ -814,7 +837,7 @@ function buildCard(row, dilemma) {
   kwRow.className = 'resp-row';
   const kwLbl = document.createElement('div');
   kwLbl.className = 'resp-label-side';
-  kwLbl.textContent = 'Keyword';
+  kwLbl.textContent = 'R-Clarification';
   const kwInput = document.createElement('textarea');
   kwInput.className = 'kso-field-input editable-field';
   kwInput.style.cssText = 'flex:1;min-width:0;resize:none;overflow:hidden;';
@@ -923,7 +946,21 @@ async function saveAll() {
     });
     const json = await resp.json();
     if (json.status === 'ok') {
+      // 로컬 allData도 즉시 동기화 (다른 컴퓨터와 일관성 보장)
+      inputs.forEach(inp => {
+        const rowNum = parseInt(inp.dataset.rownum);
+        const dil = inp.dataset.dilemma;
+        const field = inp.dataset.field;
+        const dm = DILEMMA_MAP[dil];
+        const colIdx = dm[field]; // scheme, orientation, keyword 인덱스
+        const matchRow = allData.find(r => r.rowNum === rowNum);
+        if (matchRow && matchRow.raw && colIdx < matchRow.raw.length) {
+          matchRow.raw[colIdx] = inp.value;
+        }
+      });
       showToast('저장 완료: ' + json.message);
+      // 저장 후 서버에서 최신 데이터 다시 로드
+      setTimeout(() => loadData(), 500);
     } else {
       throw new Error(json.message);
     }
@@ -1007,7 +1044,7 @@ function openModal(row) {
           </div>
         </div>
         <div class="modal-kso-area">
-          <div class="modal-kso-row"><span class="modal-kso-label">Keyword</span><div class="modal-kso-value">${escHtml(kw)}</div></div>
+          <div class="modal-kso-row"><span class="modal-kso-label">R-Clarification</span><div class="modal-kso-value">${escHtml(kw)}</div></div>
           <div class="modal-kso-row"><span class="modal-kso-label">Scheme</span><div class="modal-kso-value">${escHtml(sc)}</div></div>
           <div class="modal-kso-row"><span class="modal-kso-label">Orientation</span><div class="modal-kso-value">${escHtml(ori)}</div></div>
         </div>
@@ -1120,10 +1157,11 @@ async function openAnalysisModal(mode) {
 
   await new Promise(r => setTimeout(r, 300)); // UI 업데이트 대기
 
-  // 그룹핑
+  // 그룹핑 — (미입력) 제외
   const groups = {};
   allData.forEach(r => {
-    const key = getCellVal(r, groupIdx) || '(미입력)';
+    const key = getCellVal(r, groupIdx);
+    if (!key) return; // 미입력 제외
     if (!groups[key]) groups[key] = { n2: [], p: [], age: [], count: 0 };
     groups[key].count++;
     const n2 = parseFloat(r.C); if (!isNaN(n2)) groups[key].n2.push(n2);
