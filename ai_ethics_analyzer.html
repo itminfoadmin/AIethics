@@ -31,15 +31,16 @@ body {
   display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
   box-shadow:0 1px 3px rgba(0,0,0,.06);
 }
-.topbar-inner { max-width:80%; margin:0 auto; display:flex; align-items:center; justify-content:space-between; width:100%; flex-wrap:wrap; gap:8px; }
-.topbar-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.topbar-inner { max-width:80%; margin:0 auto; display:flex; align-items:center; justify-content:flex-start; width:100%; flex-wrap:wrap; gap:8px; }
+.topbar-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex-shrink:0; }
 .topbar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 
 .topbar select {
   padding:6px 12px; border:1px solid #cbd5e1; border-radius:6px;
-  font-size:15px; background:#fff; cursor:pointer; min-width:110px;
+  font-size:15px; background:#fff; cursor:pointer; min-width:110px; max-width:200px;
   font-family:inherit; color:#334155;
   transition:border-color .15s;
+  flex:0 0 auto; width:auto;
 }
 .topbar select:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,.15); }
 
@@ -814,14 +815,18 @@ function buildCard(row, dilemma) {
   const kwLbl = document.createElement('div');
   kwLbl.className = 'resp-label-side';
   kwLbl.textContent = 'Keyword';
-  const kwInput = document.createElement('input');
-  kwInput.type = 'text';
+  const kwInput = document.createElement('textarea');
   kwInput.className = 'kso-field-input editable-field';
-  kwInput.style.cssText = 'flex:1;min-width:0;';
+  kwInput.style.cssText = 'flex:1;min-width:0;resize:none;overflow:hidden;';
+  kwInput.rows = 1;
   kwInput.dataset.rownum = row.rowNum;
   kwInput.dataset.dilemma = dilemma;
   kwInput.dataset.field = 'keyword';
   kwInput.value = getCellVal(row, dm.keyword);
+  // Auto-resize height
+  const autoResize = () => { kwInput.style.height = 'auto'; kwInput.style.height = kwInput.scrollHeight + 'px'; };
+  kwInput.addEventListener('input', autoResize);
+  requestAnimationFrame(autoResize);
   kwRow.append(kwLbl, kwInput);
   respArea.appendChild(kwRow);
 
