@@ -399,6 +399,54 @@ body {
 }
 .loading-overlay.hidden { display:none; }
 
+/* ── Exit Confirm Modal ── */
+.exit-modal-overlay {
+  display:none; position:fixed; inset:0; background:rgba(15,23,42,.6);
+  z-index:3000; backdrop-filter:blur(3px);
+  align-items:center; justify-content:center;
+}
+.exit-modal-overlay.show { display:flex; }
+.exit-modal-box {
+  background:#fff; border-radius:12px; padding:36px 44px; text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.25); max-width:400px; width:90%;
+}
+.exit-modal-icon { font-size:48px; margin-bottom:12px; }
+.exit-modal-title {
+  font-size:18px; font-weight:700; color:#1e293b; margin-bottom:8px;
+}
+.exit-modal-msg {
+  font-size:14px; color:#64748b; line-height:1.6; margin-bottom:24px;
+}
+.exit-modal-btns { display:flex; gap:12px; justify-content:center; }
+.exit-modal-btns .btn { min-width:100px; padding:10px 24px; font-size:14px; }
+.exit-countdown {
+  font-size:56px; font-weight:700; color:#1e293b; margin:8px 0 4px;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ── Error Retry Modal ── */
+.error-modal-overlay {
+  display:none; position:fixed; inset:0; background:rgba(15,23,42,.6);
+  z-index:3000; backdrop-filter:blur(3px);
+  align-items:center; justify-content:center;
+}
+.error-modal-overlay.show { display:flex; }
+.error-modal-box {
+  background:#fff; border-radius:12px; padding:36px 44px; text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.25); max-width:420px; width:90%;
+}
+.error-modal-icon { font-size:48px; margin-bottom:12px; }
+.error-modal-title {
+  font-size:18px; font-weight:700; color:#1e293b; margin-bottom:8px;
+}
+.error-modal-msg {
+  font-size:13px; color:#64748b; line-height:1.6; margin-bottom:24px;
+  word-break:break-word;
+}
+.error-modal-retry {
+  padding:10px 32px; font-size:14px; border-radius:8px;
+}
+
 /* ── Print ── */
 @media print {
   @page { size:landscape; margin:10mm; }
@@ -508,6 +556,7 @@ body {
         <button class="btn btn-gray" onclick="loadData()">Reload</button>
         <button class="btn btn-green" onclick="saveAll()">Save</button>
         <button class="btn btn-red" onclick="printSummarySheet()">결과 시트</button>
+        <button class="btn btn-dark" onclick="showExitConfirm()">종료</button>
       </div>
     </div>
   </div>
@@ -573,13 +622,34 @@ body {
 
 <!-- Summary Sheet Modal (removed - opens Google Sheet directly) -->
 
+<!-- 종료 확인 모달 -->
+<div class="exit-modal-overlay" id="exitModalOverlay">
+  <div class="exit-modal-box" id="exitModalBox">
+    <div class="exit-modal-icon" id="exitModalIcon">🚪</div>
+    <div class="exit-modal-title" id="exitModalTitle">종료 확인</div>
+    <div class="exit-modal-msg" id="exitModalMsg">정말 종료하시겠습니까?</div>
+    <div class="exit-modal-btns" id="exitModalBtns">
+      <button class="btn btn-gray" onclick="cancelExit()">아니오</button>
+      <button class="btn btn-red" onclick="confirmExit()">예</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAS 로드 실패 모달 -->
+<div class="error-modal-overlay" id="errorModalOverlay">
+  <div class="error-modal-box">
+    <div class="error-modal-icon">⚠</div>
+    <div class="error-modal-title">데이터 로드 실패</div>
+    <div class="error-modal-msg" id="errorModalMsg">GAS 서버에 연결할 수 없습니다.</div>
+    <button class="btn btn-blue error-modal-retry" onclick="retryLoadFromErrorModal()">다시 읽어오기</button>
+  </div>
+</div>
+
 <script>
 // ──────────────────────────────────────────
 // ★ 설정: GAS 웹앱 URL
 // ──────────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbw8vivFydqIDIsWIx6OIOIVpMyxDSHyDrRMs3IoPYwe4jTe1AH-7HOvErLa0Eya6u0CEA/exec';
-
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSTxvYoHn5_2scfnTs1XxBrOaPyOGWPSx3r_0Wb9ZWVA8-L3kDPfhzbRLXhWX4B9nvVld5wrxdAMSDD/pub?gid=1846865655&single=true&output=csv';
 
 const HEADER_ROWS = 3;
 const COL_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXY';
@@ -608,59 +678,31 @@ const SUMMARY_TABS = {
 };
 const SPREADSHEET_ID = '1mxaqSIXvMMwGZz-hB5nZT92WuzX_5ITOkq_JrLgOmww';
 
-// ── CSV 파싱 ──
-function parseCSV(text) {
-  const lines = [];
-  let current = '', inQuotes = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '"') {
-      if (inQuotes && text[i+1] === '"') { current += '"'; i++; }
-      else inQuotes = !inQuotes;
-    } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
-      if (ch === '\r' && text[i+1] === '\n') i++;
-      lines.push(current); current = '';
-    } else {
-      current += ch;
-    }
-  }
-  if (current) lines.push(current);
-
-  return lines.map(line => {
-    const fields = [];
-    let field = '', q = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (q && line[i+1] === '"') { field += '"'; i++; }
-        else q = !q;
-      } else if (ch === ',' && !q) {
-        fields.push(field); field = '';
-      } else {
-        field += ch;
-      }
-    }
-    fields.push(field);
-    return fields;
-  });
-}
-
 // ── 데이터 로드 ──
 async function loadData() {
   showLoading(true);
   try {
-    if (GAS_URL && GAS_URL !== 'YOUR_GAS_WEB_APP_URL_HERE') {
-      const ok = await loadFromGAS();
-      if (ok) { showLoading(false); return; }
-    }
-    await loadFromCSV();
+    const ok = await loadFromGAS();
+    if (!ok) throw new Error('GAS 서버 응답 실패');
   } catch(err) {
     console.error(err);
-    showToast('로드 실패: ' + err.message, true);
+    showErrorModal('GAS 서버에 연결할 수 없습니다.\n(' + err.message + ')');
   } finally {
     showLoading(false);
   }
+}
+
+// ── 에러 모달 ──
+function showErrorModal(msg) {
+  document.getElementById('errorModalMsg').textContent = msg;
+  document.getElementById('errorModalOverlay').classList.add('show');
+}
+function hideErrorModal() {
+  document.getElementById('errorModalOverlay').classList.remove('show');
+}
+async function retryLoadFromErrorModal() {
+  hideErrorModal();
+  await loadData();
 }
 
 // ── GAS 날짜 문자열 정규화 ──
@@ -710,65 +752,11 @@ async function loadFromGAS() {
 
     renderCards();
     showToast('데이터 로드 완료: ' + allData.length + '건');
-    loadedFromCSV = false;
     return true;
   } catch(e) {
     console.error('GAS 로드 실패:', e);
     return false;
   }
-}
-
-// ── CSV에서 읽기 (읽기 전용 — 콤마가 포함된 셀이 분리될 수 있으므로 저장 불가) ──
-let loadedFromCSV = false;
-
-async function loadFromCSV() {
-  const csvController = new AbortController();
-  const csvTimeout = setTimeout(() => csvController.abort(), 10000);
-  const csvCacheBuster = (CSV_URL.includes('?') ? '&' : '?') + '_t=' + Date.now();
-  const resp = await fetch(CSV_URL + csvCacheBuster, { signal: csvController.signal, cache: 'no-store' });
-  clearTimeout(csvTimeout);
-  if (!resp.ok) throw new Error('CSV fetch 실패: ' + resp.status);
-  const text = await resp.text();
-  const rows = parseCSV(text);
-  const dataRows = rows.slice(HEADER_ROWS);
-
-  // CSV 헤더 행에서 예상 컬럼 수 확인 (25컬럼 = A~Y)
-  const expectedCols = COL_LETTERS.length; // 25
-  const headerCols = rows.length > 0 ? rows[0].length : 0;
-  if (headerCols > expectedCols + 2) {
-    console.warn('CSV 컬럼 수 초과 감지: 헤더 ' + headerCols + '컬럼 (예상 ' + expectedCols + '). 콤마로 인한 셀 분리 가능성.');
-  }
-
-  allData = [];
-  dataRows.forEach((cols, idx) => {
-    if (!cols[0] || cols[0].trim() === '') return;
-    const resId = (cols[1] || '').trim();
-    if (resId === 'Ready') return;
-
-    // 컬럼 수가 25를 초과하면 콤마로 인한 분리 가능성 → 초과분을 앞 컬럼에 병합
-    if (cols.length > expectedCols) {
-      // 초과된 컬럼들을 마지막 유효 컬럼(Y=24)에 콤마로 재결합
-      const overflow = cols.splice(expectedCols);
-      cols[expectedCols - 1] = [cols[expectedCols - 1], ...overflow].join(',');
-    }
-
-    // Ensure 25 columns
-    while (cols.length < 25) cols.push('');
-
-    allData.push({
-      rowNum: HEADER_ROWS + 1 + idx,
-      raw: cols.map(c => (c || '').trim()),
-      A: (cols[0] || '').trim(),
-      B: resId,
-      C: (cols[2] || '').trim(),
-      D: (cols[3] || '').trim(),
-      E: (cols[4] || '').trim(),
-    });
-  });
-
-  loadedFromCSV = true;
-  renderCards();
-  showToast('⚠ CSV 읽기 전용 모드 (GAS 연결 실패). 저장은 GAS 연결 후 가능합니다.', true);
 }
 
 // ── 점수 포맷 (소수점 2자리, IRD 등 텍스트는 그대로) ──
@@ -1005,32 +993,43 @@ async function saveAll() {
     return;
   }
 
-  // CSV 읽기 전용 모드일 때 저장 차단 (콤마로 인한 컬럼 분리 방지)
-  if (loadedFromCSV) {
-    showToast('CSV 읽기 전용 모드에서는 저장할 수 없습니다. Reload로 GAS 재연결을 시도하세요.', true);
-    return;
-  }
-
   const inputs = document.querySelectorAll('.editable-field');
   if (inputs.length === 0) {
     showToast('저장할 항목이 없습니다.', true);
     return;
   }
 
+  // 원본 allData와 비교하여 변경된 항목만 추출
   const updates = [];
   inputs.forEach(inp => {
     const rowNum = parseInt(inp.dataset.rownum);
     const dil = inp.dataset.dilemma;
     const field = inp.dataset.field;
+    const dm = DILEMMA_MAP[dil];
+    const colIdx = dm[field]; // raw 배열 인덱스
     const colKey = field + 'Col';
-    updates.push({
-      row: rowNum,
-      col: DILEMMA_MAP[dil][colKey],
-      value: inp.value
-    });
+
+    // 원본 데이터에서 해당 셀 값 가져오기
+    const matchRow = allData.find(r => r.rowNum === rowNum);
+    const original = (matchRow && matchRow.raw && colIdx < matchRow.raw.length)
+      ? matchRow.raw[colIdx] : '';
+
+    // 현재 입력값과 원본이 다를 때만 저장 목록에 추가
+    if (inp.value.trim() !== original.trim()) {
+      updates.push({
+        row: rowNum,
+        col: dm[colKey],
+        value: inp.value
+      });
+    }
   });
 
-  showLoading(true, '저장 중...');
+  if (updates.length === 0) {
+    showToast('변경된 항목이 없습니다.');
+    return;
+  }
+
+  showLoading(true, '저장 중... (' + updates.length + '건)');
   try {
     const resp = await fetch(GAS_URL, {
       method: 'POST',
@@ -1040,21 +1039,16 @@ async function saveAll() {
     });
     const json = await resp.json();
     if (json.status === 'ok') {
-      // 로컬 allData도 즉시 동기화 (다른 컴퓨터와 일관성 보장)
-      inputs.forEach(inp => {
-        const rowNum = parseInt(inp.dataset.rownum);
-        const dil = inp.dataset.dilemma;
-        const field = inp.dataset.field;
-        const dm = DILEMMA_MAP[dil];
-        const colIdx = dm[field]; // scheme, orientation, keyword 인덱스
-        const matchRow = allData.find(r => r.rowNum === rowNum);
+      // 저장 성공 → 로컬 allData만 동기화 (서버 리로드 생략)
+      updates.forEach(u => {
+        const colIdx = COL_LETTERS.indexOf(u.col);
+        if (colIdx === -1) return;
+        const matchRow = allData.find(r => r.rowNum === u.row);
         if (matchRow && matchRow.raw && colIdx < matchRow.raw.length) {
-          matchRow.raw[colIdx] = inp.value;
+          matchRow.raw[colIdx] = u.value;
         }
       });
-      showToast('저장 완료: ' + json.message);
-      // 저장 후 서버에서 최신 데이터 다시 로드
-      setTimeout(() => loadData(), 500);
+      showToast('저장 완료: ' + updates.length + '건 변경');
     } else {
       throw new Error(json.message);
     }
@@ -1622,6 +1616,53 @@ function drawBoxPlot(canvas, data, baseColor, dpr) {
   ctx.moveTo(padL + 110, 8); ctx.lineTo(padL+114, 12); ctx.lineTo(padL+110, 16); ctx.lineTo(padL+106, 12); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#475569';
   ctx.fillText('평균(Mean)', padL + 118, 15);
+}
+
+// ── 종료 모달 ──
+let exitTimer = null;
+
+function showExitConfirm() {
+  const box = document.getElementById('exitModalBox');
+  document.getElementById('exitModalIcon').textContent = '🚪';
+  document.getElementById('exitModalTitle').textContent = '종료 확인';
+  document.getElementById('exitModalMsg').textContent = '정말 종료하시겠습니까?';
+  document.getElementById('exitModalBtns').style.display = 'flex';
+  document.getElementById('exitModalOverlay').classList.add('show');
+}
+
+function cancelExit() {
+  if (exitTimer) { clearInterval(exitTimer); exitTimer = null; }
+  document.getElementById('exitModalOverlay').classList.remove('show');
+}
+
+function confirmExit() {
+  document.getElementById('exitModalBtns').style.display = 'none';
+  document.getElementById('exitModalIcon').textContent = '👋';
+  document.getElementById('exitModalTitle').textContent = '종료 중';
+
+  let count = 3;
+  document.getElementById('exitModalMsg').innerHTML =
+    '<div class="exit-countdown">' + count + '</div>초 후에 종료됩니다.';
+
+  exitTimer = setInterval(() => {
+    count--;
+    if (count > 0) {
+      document.getElementById('exitModalMsg').innerHTML =
+        '<div class="exit-countdown">' + count + '</div>초 후에 종료됩니다.';
+    } else {
+      clearInterval(exitTimer);
+      exitTimer = null;
+      // 여러 방법 시도
+      try { window.close(); } catch(e) {}
+      // window.close() 차단 시 빈 페이지로 이동
+      setTimeout(() => {
+        document.title = '종료됨';
+        document.body.innerHTML = '';
+        document.body.style.background = '#f1f5f9';
+        window.location.replace('index.html');
+      }, 200);
+    }
+  }, 1000);
 }
 
 // ── 고정 헤더 높이 동기화 ──
