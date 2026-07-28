@@ -416,6 +416,7 @@ body {
 }
 .exit-modal-msg {
   font-size:14px; color:#64748b; line-height:1.6; margin-bottom:24px;
+  white-space:pre-line;
 }
 .exit-modal-btns { display:flex; gap:12px; justify-content:center; }
 .exit-modal-btns .btn { min-width:100px; padding:10px 24px; font-size:14px; }
@@ -628,9 +629,16 @@ body {
     <div class="exit-modal-icon" id="exitModalIcon">🚪</div>
     <div class="exit-modal-title" id="exitModalTitle">종료 확인</div>
     <div class="exit-modal-msg" id="exitModalMsg">정말 종료하시겠습니까?</div>
+    <!-- 저장되지 않은 내용이 없을 때: 예/아니오 -->
     <div class="exit-modal-btns" id="exitModalBtns">
       <button class="btn btn-gray" onclick="cancelExit()">아니오</button>
       <button class="btn btn-red" onclick="confirmExit()">예</button>
+    </div>
+    <!-- 저장되지 않은 내용이 있을 때: 저장 후 종료 / 저장 안 함 / 취소 -->
+    <div class="exit-modal-btns" id="exitModalBtnsUnsaved" style="display:none;">
+      <button class="btn btn-green" onclick="saveAndExit()">저장 후 종료</button>
+      <button class="btn btn-red" onclick="confirmExit()">저장<br>안함</button>
+      <button class="btn btn-gray" onclick="cancelExit()">취소</button>
     </div>
   </div>
 </div>
@@ -1621,12 +1629,45 @@ function drawBoxPlot(canvas, data, baseColor, dpr) {
 // ── 종료 모달 ──
 let exitTimer = null;
 
+// 저장되지 않은 변경사항 확인
+function getUnsavedChanges() {
+  const inputs = document.querySelectorAll('.editable-field');
+  const changes = [];
+  inputs.forEach(inp => {
+    const rowNum = parseInt(inp.dataset.rownum);
+    const dil = inp.dataset.dilemma;
+    const field = inp.dataset.field;
+    const dm = DILEMMA_MAP[dil];
+    const colIdx = dm[field];
+    const matchRow = allData.find(r => r.rowNum === rowNum);
+    const original = (matchRow && matchRow.raw && colIdx < matchRow.raw.length)
+      ? matchRow.raw[colIdx] : '';
+    if (inp.value.trim() !== original.trim()) {
+      changes.push({ row: rowNum, field: field });
+    }
+  });
+  return changes;
+}
+
 function showExitConfirm() {
-  const box = document.getElementById('exitModalBox');
+  const unsaved = getUnsavedChanges();
+
   document.getElementById('exitModalIcon').textContent = '🚪';
   document.getElementById('exitModalTitle').textContent = '종료 확인';
-  document.getElementById('exitModalMsg').textContent = '정말 종료하시겠습니까?';
-  document.getElementById('exitModalBtns').style.display = 'flex';
+
+  if (unsaved.length > 0) {
+    // 저장되지 않은 내용이 있는 경우
+    document.getElementById('exitModalMsg').textContent =
+      '저장되지 않은 변경사항이 ' + unsaved.length + '건 있습니다.\n저장하고 종료하시겠습니까?';
+    document.getElementById('exitModalBtns').style.display = 'none';
+    document.getElementById('exitModalBtnsUnsaved').style.display = 'flex';
+  } else {
+    // 저장되지 않은 내용이 없는 경우 → 기존 흐름
+    document.getElementById('exitModalMsg').textContent = '정말 종료하시겠습니까?';
+    document.getElementById('exitModalBtns').style.display = 'flex';
+    document.getElementById('exitModalBtnsUnsaved').style.display = 'none';
+  }
+
   document.getElementById('exitModalOverlay').classList.add('show');
 }
 
@@ -1635,8 +1676,82 @@ function cancelExit() {
   document.getElementById('exitModalOverlay').classList.remove('show');
 }
 
+// 저장 후 종료
+async function saveAndExit() {
+  // 버튼 숨기고 저장 중 표시
+  document.getElementById('exitModalBtnsUnsaved').style.display = 'none';
+  document.getElementById('exitModalIcon').textContent = '💾';
+  document.getElementById('exitModalTitle').textContent = '저장 중...';
+  document.getElementById('exitModalMsg').innerHTML =
+    '<div class="dynamic-spinner" style="margin:0 auto;"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div></div>' +
+    '<div style="margin-top:16px;color:#64748b;">변경사항을 저장하고 있습니다...</div>';
+
+  try {
+    // saveAll 로직 재사용
+    const inputs = document.querySelectorAll('.editable-field');
+    const updates = [];
+    inputs.forEach(inp => {
+      const rowNum = parseInt(inp.dataset.rownum);
+      const dil = inp.dataset.dilemma;
+      const field = inp.dataset.field;
+      const dm = DILEMMA_MAP[dil];
+      const colIdx = dm[field];
+      const colKey = field + 'Col';
+      const matchRow = allData.find(r => r.rowNum === rowNum);
+      const original = (matchRow && matchRow.raw && colIdx < matchRow.raw.length)
+        ? matchRow.raw[colIdx] : '';
+      if (inp.value.trim() !== original.trim()) {
+        updates.push({ row: rowNum, col: dm[colKey], value: inp.value });
+      }
+    });
+
+    if (updates.length > 0) {
+      const resp = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'save', updates }),
+        redirect: 'follow'
+      });
+      const json = await resp.json();
+      if (json.status !== 'ok') throw new Error(json.message);
+
+      // 로컬 allData 동기화
+      updates.forEach(u => {
+        const colIdx = COL_LETTERS.indexOf(u.col);
+        if (colIdx === -1) return;
+        const matchRow = allData.find(r => r.rowNum === u.row);
+        if (matchRow && matchRow.raw && colIdx < matchRow.raw.length) {
+          matchRow.raw[colIdx] = u.value;
+        }
+      });
+    }
+
+    // 저장 성공 → 카운트다운으로 전환
+    document.getElementById('exitModalIcon').textContent = '✅';
+    document.getElementById('exitModalTitle').textContent = '저장 완료';
+    document.getElementById('exitModalMsg').textContent =
+      (updates.length > 0 ? updates.length + '건 저장 완료! ' : '') + '종료합니다...';
+
+    // 1초 후 카운트다운 시작
+    setTimeout(() => confirmExit(), 800);
+
+  } catch(err) {
+    console.error('저장 실패:', err);
+    // 저장 실패 시 다시 선택할 수 있게
+    document.getElementById('exitModalIcon').textContent = '⚠️';
+    document.getElementById('exitModalTitle').textContent = '저장 실패';
+    document.getElementById('exitModalMsg').textContent =
+      '저장에 실패했습니다: ' + err.message + '\n그래도 종료하시겠습니까?';
+    document.getElementById('exitModalBtnsUnsaved').innerHTML =
+      '<button class="btn btn-red" onclick="confirmExit()">그냥 종료</button>' +
+      '<button class="btn btn-gray" onclick="cancelExit()">취소</button>';
+    document.getElementById('exitModalBtnsUnsaved').style.display = 'flex';
+  }
+}
+
 function confirmExit() {
   document.getElementById('exitModalBtns').style.display = 'none';
+  document.getElementById('exitModalBtnsUnsaved').style.display = 'none';
   document.getElementById('exitModalIcon').textContent = '👋';
   document.getElementById('exitModalTitle').textContent = '종료 중';
 
