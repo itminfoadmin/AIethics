@@ -1211,10 +1211,14 @@ document.getElementById('selDilemma').addEventListener('change', () => {
   guardCheckUnsaved(() => {
     document.getElementById('selScheme').value = '전체';
     renderCards();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, 'dilemma');
 });
 document.getElementById('selScheme').addEventListener('change', () => {
-  guardCheckUnsaved(() => { renderCards(); }, 'scheme');
+  guardCheckUnsaved(() => {
+    renderCards();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 'scheme');
 });
 
 // ── ResID 드롭다운 ──
