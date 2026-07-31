@@ -448,11 +448,50 @@ body {
   padding:10px 32px; font-size:14px; border-radius:8px;
 }
 
+/* ── Scheme dropdown description ── */
+.scheme-desc-text {
+  font-size:13px; color:#475569; line-height:1.6; font-weight:700;
+  margin-top:10px; padding:10px 12px;
+  background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px;
+  word-break:break-word; white-space:pre-wrap;
+  max-height:100px; overflow-y:auto;
+}
+.scheme-select {
+  width:100%; border:2px solid #8b5cf6; border-radius:5px;
+  padding:8px; font-size:13px; font-family:inherit; color:#1e293b;
+  background:#fff; font-weight:600; cursor:pointer;
+  transition:border-color .15s;
+}
+.scheme-select:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,.12); }
+
+/* ── Scheme Manager table ── */
+.scheme-mgr-table { width:100%; border-collapse:collapse; font-size:13px; }
+.scheme-mgr-table th {
+  background:#1e293b; color:#fff; padding:8px 10px; font-size:12px;
+  font-weight:600; border:1px solid #334155; text-align:center;
+  position:sticky; top:0; z-index:1;
+}
+.scheme-mgr-table td {
+  padding:4px 6px; border:1px solid #e2e8f0; text-align:center; vertical-align:top;
+}
+.scheme-mgr-table tr:nth-child(even) td { background:#f8fafc; }
+.scheme-mgr-table tr:hover td { background:#eef2ff; }
+.scheme-mgr-table input, .scheme-mgr-table textarea {
+  width:100%; border:1px solid #cbd5e1; border-radius:4px;
+  padding:5px 7px; font-size:12px; font-family:inherit; color:#334155;
+  background:#fff; resize:vertical;
+}
+.scheme-mgr-table input:focus, .scheme-mgr-table textarea:focus {
+  outline:none; border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,.12);
+}
+.scheme-mgr-actions { display:flex; gap:4px; justify-content:center; }
+.scheme-mgr-actions .btn { padding:4px 10px; font-size:11px; }
+
 /* ── Print ── */
 @media print {
   @page { size:landscape; margin:10mm; }
   .fixed-header, .header-spacer, .loading-overlay, .status-toast,
-  .modal-overlay, .docs-modal-overlay { display:none !important; }
+  .modal-overlay, .docs-modal-overlay, #schemeManagerOverlay { display:none !important; }
   body { background:#fff; font-size:11px; }
   .page-wrap { max-width:100%; }
 
@@ -552,11 +591,11 @@ body {
       </div>
       <div class="topbar-right" style="margin-left:auto;">
         <button class="btn btn-dark" onclick="openDocsModal()">Dilemma</button>
-        <button class="btn btn-blue" onclick="openAnalysisModal('orientation')">Scheme 분석</button>
-        <button class="btn btn-blue" onclick="openScatterModal()">N2/P% 분석</button>
+        <button class="btn btn-dark" onclick="openSchemeManager()">Code 관리</button>
         <button class="btn btn-gray" onclick="guardCheckUnsaved(loadData, 'reload')">Reload</button>
         <button class="btn btn-green" onclick="saveAll()">Save</button>
         <button class="btn btn-red" onclick="printSummarySheet()">결과 시트</button>
+        <button class="btn btn-blue" onclick="openCombinedAnalysis()">분석</button>
         <button class="btn btn-dark" onclick="showExitConfirm()">종료</button>
       </div>
     </div>
@@ -623,6 +662,24 @@ body {
 
 <!-- Summary Sheet Modal (removed - opens Google Sheet directly) -->
 
+<!-- Code 관리 Modal -->
+<div class="docs-modal-overlay" id="schemeManagerOverlay" onclick="if(event.target===this)closeSchemeManager()">
+  <div class="docs-modal-box" style="max-width:1320px;width:94%;height:85vh;">
+    <div class="docs-modal-header" id="schemeManagerHeader">
+      <span class="docs-modal-title">Code 관리</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="modal-close-btn" onclick="closeSchemeManager()">닫기 ✕</button>
+      </div>
+    </div>
+    <div class="summary-body" id="schemeManagerBody" style="padding:16px;">
+      <div class="summary-loading" id="schemeManagerLoading">
+        <div class="dynamic-spinner"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div></div>
+        <div class="loading-text">Code 로드 중...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 종료 확인 모달 -->
 <div class="exit-modal-overlay" id="exitModalOverlay">
   <div class="exit-modal-box" id="exitModalBox">
@@ -677,6 +734,35 @@ const HEADER_ROWS = 3;
 const COL_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXY';
 
 let allData = [];
+let codeTabData = []; // [{code:'...', descs:['B','C','D','E']}]
+
+// ── Code 탭 데이터 로드 ──
+async function loadCodeTab() {
+  try {
+    const resp = await fetch(GAS_URL + '?tab=Code&t=' + Date.now(), { cache: 'no-store' });
+    const json = await resp.json();
+    if (json.status !== 'ok' || !json.tabData) return;
+    codeTabData = [];
+    // 첫 행은 헤더, 2행부터 데이터
+    for (let i = 1; i < json.tabData.length; i++) {
+      const row = json.tabData[i];
+      const code = (row[0] || '').trim();
+      if (!code) continue;
+      codeTabData.push({
+        code: code,
+        descs: [
+          (row[1] || '').trim(), // B - Dilemma1
+          (row[2] || '').trim(), // C - Dilemma2
+          (row[3] || '').trim(), // D - Dilemma3
+          (row[4] || '').trim(), // E - Dilemma4
+        ],
+        rowIndex: i + 1 // 시트에서의 실제 행 번호 (1-based)
+      });
+    }
+  } catch(e) {
+    console.error('Code 탭 로드 실패:', e);
+  }
+}
 
 // ── Dilemma 매핑 (0-based index for raw array) ──
 // A=0 B=1 C=2 D=3 E=4
@@ -704,6 +790,7 @@ const SPREADSHEET_ID = '1mxaqSIXvMMwGZz-hB5nZT92WuzX_5ITOkq_JrLgOmww';
 async function loadData() {
   showLoading(true);
   try {
+    await loadCodeTab(); // Code 탭 먼저 로드
     const ok = await loadFromGAS();
     if (!ok) throw new Error('GAS 서버 응답 실패');
   } catch(err) {
@@ -800,32 +887,25 @@ function populateFilterDropdowns() {
     if (ori) oriSet.add(ori);
   });
 
-  const fillSelect = (sel, labelText, valSet, stripWord) => {
-    const prev = sel.value;
-    sel.innerHTML = '';
-    const def = document.createElement('option');
-    def.value = '전체'; def.textContent = labelText;
-    def.disabled = true; def.hidden = true;
-    sel.appendChild(def);
-    const allOpt = document.createElement('option');
-    allOpt.value = '전체'; allOpt.textContent = '전체 (All)';
-    sel.appendChild(allOpt);
-    Array.from(valSet).sort().forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v;
-      let displayText = v;
-      if (stripWord) {
-        displayText = v.replace(new RegExp('\\s*' + stripWord + '\\s*', 'gi'), ' ').trim();
-        if (!displayText) displayText = v;
-      }
-      opt.textContent = displayText;
-      sel.appendChild(opt);
-    });
-    if (Array.from(sel.options).some(o => o.value === prev)) sel.value = prev;
-    else sel.value = '전체';
-  };
-
-  fillSelect(document.getElementById('selScheme'), 'Scheme', oriSet, 'Scheme');
+  const sel = document.getElementById('selScheme');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  const def = document.createElement('option');
+  def.value = '전체'; def.textContent = 'Scheme';
+  def.disabled = true; def.hidden = true;
+  sel.appendChild(def);
+  const allOpt = document.createElement('option');
+  allOpt.value = '전체'; allOpt.textContent = '전체 (All)';
+  sel.appendChild(allOpt);
+  const sorted = Array.from(oriSet).sort();
+  sorted.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
+  if (Array.from(sel.options).some(o => o.value === prev)) sel.value = prev;
+  else sel.value = '전체';
 }
 
 // ── 필터된 데이터 ──
@@ -907,7 +987,7 @@ function buildCard(row, dilemma) {
 
   const ksoLabel = document.createElement('span');
   ksoLabel.className = 'kso-label';
-  ksoLabel.textContent = 'SCHEME';
+  ksoLabel.textContent = 'CODE(SCHEME)';
 
   header.append(resid, makeTag('N2', fmtScore(row.C)), makeTag('P%', fmtScore(row.D)), makeTag('Age', row.E), modalBtn, ksoLabel);
   card.appendChild(header);
@@ -962,23 +1042,58 @@ function buildCard(row, dilemma) {
   scRow.append(scLbl, scInput);
   respArea.appendChild(scRow);
 
-  // Right: Scheme (orientation data)
+  // Right: Scheme (orientation data) — dropdown from Code tab
   const ksoArea = document.createElement('div');
   ksoArea.className = 'card-kso-area';
 
   const schFieldRow = document.createElement('div');
   schFieldRow.className = 'kso-field-row';
 
-  const oriInput = document.createElement('input');
-  oriInput.type = 'text';
-  oriInput.className = 'kso-field-input editable-field';
-  oriInput.dataset.rownum = row.rowNum;
-  oriInput.dataset.dilemma = dilemma;
-  oriInput.dataset.field = 'orientation';
-  oriInput.value = getCellVal(row, dm.orientation);
+  const oriSelect = document.createElement('select');
+  oriSelect.className = 'scheme-select editable-field';
+  oriSelect.dataset.rownum = row.rowNum;
+  oriSelect.dataset.dilemma = dilemma;
+  oriSelect.dataset.field = 'orientation';
 
-  schFieldRow.appendChild(oriInput);
+  // Default empty option
+  const emptyOpt = document.createElement('option');
+  emptyOpt.value = ''; emptyOpt.textContent = '-- 선택 --';
+  oriSelect.appendChild(emptyOpt);
+
+  // Populate from codeTabData
+  const currentVal = getCellVal(row, dm.orientation);
+  codeTabData.forEach(cd => {
+    const opt = document.createElement('option');
+    opt.value = cd.code;
+    opt.textContent = cd.code;
+    if (cd.code === currentVal) opt.selected = true;
+    oriSelect.appendChild(opt);
+  });
+  // If currentVal exists but not in codeTabData, add it
+  if (currentVal && !codeTabData.some(cd => cd.code === currentVal)) {
+    const opt = document.createElement('option');
+    opt.value = currentVal; opt.textContent = currentVal; opt.selected = true;
+    oriSelect.appendChild(opt);
+  }
+
+  schFieldRow.appendChild(oriSelect);
   ksoArea.appendChild(schFieldRow);
+
+  // Description area below dropdown
+  const descDiv = document.createElement('div');
+  descDiv.className = 'scheme-desc-text';
+  descDiv.id = 'schemeDesc_' + row.rowNum + '_' + dilemma;
+  const descColIdx = parseInt(dilemma); // 1→B(col1), 2→C(col2), 3→D(col3), 4→E(col4)
+  const matchedCode = findCodeMatch(currentVal);
+  descDiv.textContent = matchedCode ? (matchedCode.descs[descColIdx - 1] || matchedCode.descs[0] || '') : '';
+  ksoArea.appendChild(descDiv);
+
+  // On change, update description
+  oriSelect.addEventListener('change', () => {
+    const sel = oriSelect.value;
+    const mc = findCodeMatch(sel);
+    descDiv.textContent = mc ? (mc.descs[descColIdx - 1] || mc.descs[0] || '') : '';
+  });
 
   body.append(respArea, ksoArea);
   card.appendChild(body);
@@ -1306,7 +1421,7 @@ function openModal(row) {
     section.innerHTML = `
       <div class="modal-dilemma-header">
         <span class="modal-dilemma-title">${DILEMMA_LABELS[i]}</span>
-        <span class="modal-dilemma-kso-label" style="font-weight:700;text-transform:uppercase;">SCHEME</span>
+        <span class="modal-dilemma-kso-label" style="font-weight:700;text-transform:uppercase;">CODE(SCHEME)</span>
       </div>
       <div class="modal-dilemma-body">
         <div class="modal-resp-area">
@@ -1328,7 +1443,7 @@ function openModal(row) {
           </div>
         </div>
         <div class="modal-kso-area">
-          <div class="modal-kso-row"><span class="modal-kso-label" style="font-weight:700;text-transform:uppercase;">SCHEME</span><div class="modal-kso-value">${escHtml(ori)}</div></div>
+          <div class="modal-kso-row"><span class="modal-kso-label" style="font-weight:700;text-transform:uppercase;">CODE</span><div class="modal-kso-value">${escHtml(ori)}</div></div>
         </div>
       </div>`;
     body.appendChild(section);
@@ -1452,6 +1567,7 @@ async function openAnalysisModal(mode) {
   });
 
   const labels = Object.keys(groups).sort();
+  const dilNum = parseInt(dil);
   const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
   const median = arr => {
     if (!arr.length) return 0;
@@ -1491,6 +1607,8 @@ async function openAnalysisModal(mode) {
   freqCanvas.style.width = '100%';
   freqCanvas.style.height = '280px';
   freqWrap.appendChild(freqCanvas);
+  const freqLegend = buildSchemeLegend(labels, dilNum);
+  freqWrap.appendChild(freqLegend);
   freqSec.append(freqTitle, freqWrap);
   wrap.appendChild(freqSec);
 
@@ -1518,6 +1636,8 @@ async function openAnalysisModal(mode) {
     canvas.style.width = '100%';
     canvas.style.height = '300px';
     cw.appendChild(canvas);
+    // Legend below each chart
+    cw.appendChild(buildSchemeLegend(labels, dilNum));
     sec.append(t, cw);
     wrap.appendChild(sec);
     pendingCanvases.push({ canvas, data: cd.data, color: cd.color });
@@ -1526,9 +1646,9 @@ async function openAnalysisModal(mode) {
   // ── 3) Summary table ──
   const sumSec = document.createElement('div');
   sumSec.className = 'analysis-summary';
-  let tbl = '<table><thead><tr><th>' + groupLabel + '</th><th>빈도</th><th>N2 평균</th><th>N2 중앙값</th><th>P% 평균</th><th>P% 중앙값</th><th>Age 평균</th><th>Age 중앙값</th></tr></thead><tbody>';
+  let tbl = '<table><thead><tr><th>No.</th><th>Code</th><th>설명</th><th>빈도</th><th>N2 평균</th><th>N2 중앙값</th><th>P% 평균</th><th>P% 중앙값</th><th>Age 평균</th><th>Age 중앙값</th></tr></thead><tbody>';
   let totalN=0, sumN2=0, sumP=0, sumAge=0;
-  labels.forEach(k => {
+  labels.forEach((k, idx) => {
     const sn2 = boxStats(groups[k].n2);
     const sp  = boxStats(groups[k].p);
     const sa  = boxStats(groups[k].age);
@@ -1537,7 +1657,9 @@ async function openAnalysisModal(mode) {
     if(sn2) sumN2 += sn2.avg * sn2.n;
     if(sp)  sumP  += sp.avg * sp.n;
     if(sa)  sumAge+= sa.avg * sa.n;
-    tbl += '<tr><td style="font-weight:600;color:#1e293b">' + escHtml(k) + '</td><td>' + cn + '</td>';
+    const codeDesc = getCodeDesc(k, dilNum);
+    
+    tbl += '<tr><td style="font-weight:600;color:#1e293b">' + (idx+1) + '</td><td style="font-weight:600;color:#1e293b">' + escHtml(k) + '</td><td style="color:#64748b;font-size:11px">' + escHtml(codeDesc) + '</td><td>' + cn + '</td>';
     tbl += '<td>' + (sn2?sn2.avg.toFixed(2):'-') + '</td><td>' + (sn2?sn2.med.toFixed(2):'-') + '</td>';
     tbl += '<td>' + (sp?sp.avg.toFixed(2):'-') + '</td><td>' + (sp?sp.med.toFixed(2):'-') + '</td>';
     tbl += '<td>' + (sa?sa.avg.toFixed(1):'-') + '</td><td>' + (sa?sa.med.toFixed(1):'-') + '</td></tr>';
@@ -1545,7 +1667,7 @@ async function openAnalysisModal(mode) {
   const numN2 = allData.filter(r=>!isNaN(parseFloat(r.C))).length;
   const numP  = allData.filter(r=>!isNaN(parseFloat(r.D))).length;
   const numAge= allData.filter(r=>!isNaN(parseFloat(r.E))).length;
-  tbl += '<tr style="background:#f1f5f9;font-weight:600"><td>전체</td><td>'+totalN+'</td>';
+  tbl += '<tr style="background:#f1f5f9;font-weight:600"><td colspan="3">전체</td><td>'+totalN+'</td>';
   tbl += '<td>'+(numN2?(sumN2/numN2).toFixed(2):'-')+'</td><td>-</td>';
   tbl += '<td>'+(numP?(sumP/numP).toFixed(2):'-')+'</td><td>-</td>';
   tbl += '<td>'+(numAge?(sumAge/numAge).toFixed(1):'-')+'</td><td>-</td></tr>';
@@ -1584,7 +1706,335 @@ function closeAnalysis() {
   document.body.style.overflow = '';
 }
 
-// ── N2/P% Scatter Plot Modal ──
+// ── 통합 분석 (N2/P% + Scheme) ──
+async function openCombinedAnalysis() {
+  const dil = document.getElementById('selDilemma').value;
+  const dilLabel = 'Dilemma-0' + dil;
+  const dm = DILEMMA_MAP[dil];
+
+  document.getElementById('analysisTitle').textContent = '통합 분석';
+  document.getElementById('analysisSubtitle').textContent = dilLabel + ' 기준';
+  const body = document.getElementById('analysisBody');
+  body.innerHTML = '<div class="analysis-loading"><div class="dynamic-spinner"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div></div><div class="loading-text">데이터 분석 중...</div><div class="loading-bar-track"><div class="loading-bar-fill"></div></div></div>';
+  document.getElementById('analysisOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+
+  // 최신 데이터 로드
+  try {
+    if (GAS_URL && GAS_URL !== 'YOUR_GAS_WEB_APP_URL_HERE') {
+      const resp = await fetch(GAS_URL);
+      const json = await resp.json();
+      if (json.status === 'ok') {
+        allData = [];
+        json.data.forEach(r => {
+          if (r.B && r.B.trim() === 'Ready') return;
+          const rawArr = COL_LETTERS.split('').map(c => normalizeGASValue(r[c]));
+          allData.push({ rowNum: r.rowNum, raw: rawArr, A: normalizeGASValue(r.A), B: normalizeGASValue(r.B), C: normalizeGASValue(r.C), D: normalizeGASValue(r.D), E: normalizeGASValue(r.E) });
+        });
+      }
+    }
+  } catch(e) { console.error('분석용 데이터 로드 실패:', e); }
+
+  await new Promise(r => setTimeout(r, 300));
+
+  body.innerHTML = '';
+  const dpr = window.devicePixelRatio || 1;
+  const masterWrap = document.createElement('div');
+  masterWrap.className = 'analysis-charts';
+
+  // ═══════════════════════════════════════
+  // PART 1: N2 / P% 분석
+  // ═══════════════════════════════════════
+  const sectionTitle1 = document.createElement('div');
+  sectionTitle1.style.cssText = 'font-size:16px;font-weight:700;color:#1e293b;padding:8px 0 4px;border-bottom:3px solid #3b82f6;margin-bottom:8px;letter-spacing:.5px;';
+  sectionTitle1.textContent = '📊 N2 / P% 분석';
+  masterWrap.appendChild(sectionTitle1);
+
+  const n2Vals = [], pVals = [], scatterPairs = [], resIDs = [];
+  allData.forEach(r => {
+    const n2 = parseFloat(r.C);
+    const p = parseFloat(r.D);
+    if (!isNaN(n2)) n2Vals.push(n2);
+    if (!isNaN(p)) pVals.push(p);
+    if (!isNaN(n2) && !isNaN(p)) {
+      scatterPairs.push({ n2, p });
+      resIDs.push(r.B || '');
+    }
+  });
+
+  const pendingNP = [];
+
+  if (n2Vals.length > 0 || pVals.length > 0) {
+    // N2 Histogram
+    const n2Sec = document.createElement('div');
+    n2Sec.className = 'analysis-chart-section';
+    const n2Title = document.createElement('div');
+    n2Title.className = 'analysis-chart-title';
+    n2Title.textContent = 'N2 Score 빈도 분포 (Histogram)';
+    const n2Wrap = document.createElement('div');
+    n2Wrap.className = 'analysis-chart-wrap';
+    const n2Canvas = document.createElement('canvas');
+    n2Canvas.style.width = '100%'; n2Canvas.style.height = '300px';
+    n2Wrap.appendChild(n2Canvas);
+    n2Sec.append(n2Title, n2Wrap);
+    masterWrap.appendChild(n2Sec);
+    pendingNP.push({ canvas: n2Canvas, type: 'hist', vals: n2Vals, label: 'N2 Score', color: '#3b82f6' });
+
+    // P% Histogram
+    const pSec = document.createElement('div');
+    pSec.className = 'analysis-chart-section';
+    const pTitle = document.createElement('div');
+    pTitle.className = 'analysis-chart-title';
+    pTitle.textContent = 'P% Score 빈도 분포 (Histogram)';
+    const pWrap = document.createElement('div');
+    pWrap.className = 'analysis-chart-wrap';
+    const pCanvas = document.createElement('canvas');
+    pCanvas.style.width = '100%'; pCanvas.style.height = '300px';
+    pWrap.appendChild(pCanvas);
+    pSec.append(pTitle, pWrap);
+    masterWrap.appendChild(pSec);
+    pendingNP.push({ canvas: pCanvas, type: 'hist', vals: pVals, label: 'P%', color: '#f59e0b' });
+
+    // N2/P% Summary table
+    const npStats = (arr) => {
+      if (!arr.length) return { n:0, avg:0, med:0, min:0, max:0, sd:0 };
+      const s = arr.slice().sort((a,b)=>a-b);
+      const n = s.length;
+      const mean = s.reduce((a,b)=>a+b,0)/n;
+      const m = Math.floor(n/2);
+      const med = n%2 ? s[m] : (s[m-1]+s[m])/2;
+      const sd = Math.sqrt(s.reduce((sum,v)=>sum+(v-mean)**2,0)/n);
+      return { n, avg:mean, med, min:s[0], max:s[n-1], sd };
+    };
+    const sN2 = npStats(n2Vals), sP = npStats(pVals);
+    let corr = 0;
+    if (scatterPairs.length > 1) {
+      const mN2 = scatterPairs.reduce((s,d)=>s+d.n2,0)/scatterPairs.length;
+      const mP = scatterPairs.reduce((s,d)=>s+d.p,0)/scatterPairs.length;
+      let num=0, dN=0, dP=0;
+      scatterPairs.forEach(d => { num += (d.n2-mN2)*(d.p-mP); dN += (d.n2-mN2)**2; dP += (d.p-mP)**2; });
+      corr = (dN && dP) ? num/Math.sqrt(dN*dP) : 0;
+    }
+    const npSum = document.createElement('div');
+    npSum.className = 'analysis-summary';
+    npSum.innerHTML = '<table><thead><tr><th>지표</th><th>N</th><th>평균</th><th>중앙값</th><th>표준편차</th><th>최솟값</th><th>최댓값</th></tr></thead><tbody>' +
+      '<tr><td style="font-weight:600;color:#1e293b">N2 Score</td><td>'+sN2.n+'</td><td>'+sN2.avg.toFixed(2)+'</td><td>'+sN2.med.toFixed(2)+'</td><td>'+sN2.sd.toFixed(2)+'</td><td>'+sN2.min.toFixed(2)+'</td><td>'+sN2.max.toFixed(2)+'</td></tr>' +
+      '<tr><td style="font-weight:600;color:#1e293b">P% Score</td><td>'+sP.n+'</td><td>'+sP.avg.toFixed(2)+'</td><td>'+sP.med.toFixed(2)+'</td><td>'+sP.sd.toFixed(2)+'</td><td>'+sP.min.toFixed(2)+'</td><td>'+sP.max.toFixed(2)+'</td></tr>' +
+      '<tr style="background:#f1f5f9;font-weight:600"><td>상관계수 (r)</td><td colspan="6" style="text-align:center;font-size:15px;color:#3b82f6">'+corr.toFixed(4)+'</td></tr>' +
+      '</tbody></table>';
+    masterWrap.appendChild(npSum);
+  } else {
+    const noData1 = document.createElement('div');
+    noData1.style.cssText = 'text-align:center;padding:20px;color:#999;';
+    noData1.textContent = 'N2/P% 데이터가 없습니다.';
+    masterWrap.appendChild(noData1);
+  }
+
+  // ═══════════════════════════════════════
+  // PART 2: Scheme 분석
+  // ═══════════════════════════════════════
+  const divider = document.createElement('div');
+  divider.style.cssText = 'height:2px;background:#e2e8f0;margin:20px 0 12px;';
+  masterWrap.appendChild(divider);
+
+  const sectionTitle2 = document.createElement('div');
+  sectionTitle2.style.cssText = 'font-size:16px;font-weight:700;color:#1e293b;padding:8px 0 4px;border-bottom:3px solid #8b5cf6;margin-bottom:8px;letter-spacing:.5px;';
+  sectionTitle2.textContent = '📈 Scheme 분석 (' + dilLabel + ')';
+  masterWrap.appendChild(sectionTitle2);
+
+  const groupIdx = dm.orientation;
+  const groupLabel = 'Scheme';
+  const groups = {};
+  allData.forEach(r => {
+    const key = getCellVal(r, groupIdx);
+    if (!key) return;
+    if (!groups[key]) groups[key] = { n2: [], p: [], age: [], count: 0 };
+    groups[key].count++;
+    const n2 = parseFloat(r.C); if (!isNaN(n2)) groups[key].n2.push(n2);
+    const p = parseFloat(r.D);  if (!isNaN(p))  groups[key].p.push(p);
+    const a = parseFloat(r.E);  if (!isNaN(a))  groups[key].age.push(a);
+  });
+
+  const labels = Object.keys(groups).sort();
+  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+  const median = arr => { if (!arr.length) return 0; const s = arr.slice().sort((a,b)=>a-b); const m = Math.floor(s.length/2); return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+  const q1 = arr => { const s = arr.slice().sort((a,b)=>a-b); return median(s.slice(0, Math.floor(s.length/2))); };
+  const q3 = arr => { const s = arr.slice().sort((a,b)=>a-b); return median(s.slice(Math.ceil(s.length/2))); };
+  function boxStats(arr) { if (!arr.length) return null; const s = arr.slice().sort((a,b)=>a-b); return { min:s[0], q1:q1(s), med:median(s), q3:q3(s), max:s[s.length-1], avg:avg(s), n:s.length }; }
+  const dilNum = parseInt(dil);
+
+  const pendingScheme = [];
+
+  if (labels.length > 0) {
+    // Scheme-only labels (Scheme으로 시작하는 코드만 필터)
+    const schemeLabels = labels.filter(k => /^scheme/i.test(k.replace(/shceme/gi,'scheme')));
+    const allLabelsForFreq = labels; // 빈도 차트는 전체 코드
+
+    // Frequency (전체 코드)
+    const freqSec = document.createElement('div');
+    freqSec.className = 'analysis-chart-section';
+    const freqTitle = document.createElement('div');
+    freqTitle.className = 'analysis-chart-title';
+    freqTitle.textContent = groupLabel + '별 빈도 (Frequency)';
+    const freqWrap = document.createElement('div');
+    freqWrap.className = 'analysis-chart-wrap';
+    const freqCanvas = document.createElement('canvas');
+    freqCanvas.style.width = '100%'; freqCanvas.style.height = '280px';
+    freqWrap.appendChild(freqCanvas);
+    freqWrap.appendChild(buildSchemeLegend(allLabelsForFreq, dilNum));
+    freqSec.append(freqTitle, freqWrap);
+    masterWrap.appendChild(freqSec);
+    pendingScheme.push({ canvas: freqCanvas, type: 'freq', data: allLabelsForFreq.map(k => ({ label: k, count: groups[k].count })) });
+
+    // N2 Box Plot (Scheme만)
+    if (schemeLabels.length > 0) {
+      const bpN2 = schemeLabels.map(k => ({ label:k, ...boxStats(groups[k].n2) }));
+      const n2bSec = document.createElement('div');
+      n2bSec.className = 'analysis-chart-section';
+      const n2bTitle = document.createElement('div');
+      n2bTitle.className = 'analysis-chart-title';
+      n2bTitle.textContent = 'N2 Score (by Scheme)';
+      const n2bWrap = document.createElement('div');
+      n2bWrap.className = 'analysis-chart-wrap';
+      const n2bCanvas = document.createElement('canvas');
+      n2bCanvas.style.width = '100%'; n2bCanvas.style.height = '300px';
+      n2bWrap.appendChild(n2bCanvas);
+      n2bWrap.appendChild(buildSchemeLegend(schemeLabels, dilNum));
+      n2bSec.append(n2bTitle, n2bWrap);
+      masterWrap.appendChild(n2bSec);
+      pendingScheme.push({ canvas: n2bCanvas, type: 'box', data: bpN2, color: '#3b82f6' });
+
+      // N2 분포 선 그래프
+      const n2dSec = document.createElement('div');
+      n2dSec.className = 'analysis-chart-section';
+      const n2dTitle = document.createElement('div');
+      n2dTitle.className = 'analysis-chart-title';
+      n2dTitle.textContent = 'N2 Score 분포 (by Scheme)';
+      const n2dWrap = document.createElement('div');
+      n2dWrap.className = 'analysis-chart-wrap';
+      const n2dCanvas = document.createElement('canvas');
+      n2dCanvas.style.width = '100%'; n2dCanvas.style.height = '300px';
+      n2dWrap.appendChild(n2dCanvas);
+      n2dWrap.appendChild(buildSchemeLegend(schemeLabels, dilNum));
+      n2dSec.append(n2dTitle, n2dWrap);
+      masterWrap.appendChild(n2dSec);
+      const n2DistData = schemeLabels.map(k => ({ label: k, values: groups[k].n2 }));
+      pendingScheme.push({ canvas: n2dCanvas, type: 'dist', data: n2DistData, xLabel: 'N2 Score' });
+
+      // P% Box Plot (Scheme만)
+      const bpP = schemeLabels.map(k => ({ label:k, ...boxStats(groups[k].p) }));
+      const pbSec = document.createElement('div');
+      pbSec.className = 'analysis-chart-section';
+      const pbTitle = document.createElement('div');
+      pbTitle.className = 'analysis-chart-title';
+      pbTitle.textContent = 'P% Score (by Scheme)';
+      const pbWrap = document.createElement('div');
+      pbWrap.className = 'analysis-chart-wrap';
+      const pbCanvas = document.createElement('canvas');
+      pbCanvas.style.width = '100%'; pbCanvas.style.height = '300px';
+      pbWrap.appendChild(pbCanvas);
+      pbWrap.appendChild(buildSchemeLegend(schemeLabels, dilNum));
+      pbSec.append(pbTitle, pbWrap);
+      masterWrap.appendChild(pbSec);
+      pendingScheme.push({ canvas: pbCanvas, type: 'box', data: bpP, color: '#f59e0b' });
+
+      // P% 분포 선 그래프
+      const pdSec = document.createElement('div');
+      pdSec.className = 'analysis-chart-section';
+      const pdTitle = document.createElement('div');
+      pdTitle.className = 'analysis-chart-title';
+      pdTitle.textContent = 'P% Score 분포 (by Scheme)';
+      const pdWrap = document.createElement('div');
+      pdWrap.className = 'analysis-chart-wrap';
+      const pdCanvas = document.createElement('canvas');
+      pdCanvas.style.width = '100%'; pdCanvas.style.height = '300px';
+      pdWrap.appendChild(pdCanvas);
+      pdWrap.appendChild(buildSchemeLegend(schemeLabels, dilNum));
+      pdSec.append(pdTitle, pdWrap);
+      masterWrap.appendChild(pdSec);
+      const pDistData = schemeLabels.map(k => ({ label: k, values: groups[k].p }));
+      pendingScheme.push({ canvas: pdCanvas, type: 'dist', data: pDistData, xLabel: 'P% Score' });
+    }
+
+    // Age Box Plot (전체 코드)
+    const bpAge = labels.map(k => ({ label:k, ...boxStats(groups[k].age) }));
+    const ageSec = document.createElement('div');
+    ageSec.className = 'analysis-chart-section';
+    const ageTitle = document.createElement('div');
+    ageTitle.className = 'analysis-chart-title';
+    ageTitle.textContent = 'Age (by ' + groupLabel + ')';
+    const ageWrap = document.createElement('div');
+    ageWrap.className = 'analysis-chart-wrap';
+    const ageCanvas = document.createElement('canvas');
+    ageCanvas.style.width = '100%'; ageCanvas.style.height = '300px';
+    ageWrap.appendChild(ageCanvas);
+    ageWrap.appendChild(buildSchemeLegend(labels, dilNum));
+    ageSec.append(ageTitle, ageWrap);
+    masterWrap.appendChild(ageSec);
+    pendingScheme.push({ canvas: ageCanvas, type: 'box', data: bpAge, color: '#10b981' });
+
+    // Summary table
+    const sumSec = document.createElement('div');
+    sumSec.className = 'analysis-summary';
+    let tbl = '<table><thead><tr><th>No.</th><th>Code</th><th>설명</th><th>빈도</th><th>N2 평균</th><th>N2 중앙값</th><th>P% 평균</th><th>P% 중앙값</th><th>Age 평균</th><th>Age 중앙값</th></tr></thead><tbody>';
+    let totalN=0, sumN2t=0, sumPt=0, sumAget=0;
+    labels.forEach((k, idx) => {
+      const sn2 = boxStats(groups[k].n2); const sp = boxStats(groups[k].p); const sa = boxStats(groups[k].age);
+      const cn = groups[k].count; totalN += cn;
+      if(sn2) sumN2t += sn2.avg * sn2.n; if(sp) sumPt += sp.avg * sp.n; if(sa) sumAget += sa.avg * sa.n;
+      const codeDesc = getCodeDesc(k, dilNum);
+      
+      tbl += '<tr><td style="font-weight:600;color:#1e293b">' + (idx+1) + '</td><td style="font-weight:600;color:#1e293b">' + escHtml(k) + '</td><td style="color:#64748b;font-size:11px">' + escHtml(codeDesc) + '</td><td>' + cn + '</td>';
+      tbl += '<td>' + (sn2?sn2.avg.toFixed(2):'-') + '</td><td>' + (sn2?sn2.med.toFixed(2):'-') + '</td>';
+      tbl += '<td>' + (sp?sp.avg.toFixed(2):'-') + '</td><td>' + (sp?sp.med.toFixed(2):'-') + '</td>';
+      tbl += '<td>' + (sa?sa.avg.toFixed(1):'-') + '</td><td>' + (sa?sa.med.toFixed(1):'-') + '</td></tr>';
+    });
+    const numN2 = allData.filter(r=>!isNaN(parseFloat(r.C))).length;
+    const numP  = allData.filter(r=>!isNaN(parseFloat(r.D))).length;
+    const numAge= allData.filter(r=>!isNaN(parseFloat(r.E))).length;
+    tbl += '<tr style="background:#f1f5f9;font-weight:600"><td colspan="3">전체</td><td>'+totalN+'</td>';
+    tbl += '<td>'+(numN2?(sumN2t/numN2).toFixed(2):'-')+'</td><td>-</td>';
+    tbl += '<td>'+(numP?(sumPt/numP).toFixed(2):'-')+'</td><td>-</td>';
+    tbl += '<td>'+(numAge?(sumAget/numAge).toFixed(1):'-')+'</td><td>-</td></tr>';
+    tbl += '</tbody></table>';
+    sumSec.innerHTML = tbl;
+    masterWrap.appendChild(sumSec);
+  } else {
+    const noData2 = document.createElement('div');
+    noData2.style.cssText = 'text-align:center;padding:20px;color:#999;';
+    noData2.textContent = 'Scheme 데이터가 없습니다.';
+    masterWrap.appendChild(noData2);
+  }
+
+  body.appendChild(masterWrap);
+  body.scrollTop = 0;
+
+  // Canvas 그리기
+  requestAnimationFrame(() => {
+    pendingNP.forEach(pc => {
+      const pw = pc.canvas.parentElement.clientWidth - 32;
+      pc.canvas.width = pw * dpr; pc.canvas.height = 300 * dpr; pc.canvas.style.width = pw + 'px';
+      drawHistogram(pc.canvas, pc.vals, pc.label, pc.color, dpr);
+    });
+    pendingScheme.forEach(pc => {
+      const pw = pc.canvas.parentElement.clientWidth - 32;
+      if (pc.type === 'freq') {
+        pc.canvas.width = pw * dpr; pc.canvas.height = 280 * dpr; pc.canvas.style.width = pw + 'px';
+        drawFreqChart(pc.canvas, pc.data, dpr);
+      } else if (pc.type === 'dist') {
+        pc.canvas.width = pw * dpr; pc.canvas.height = 300 * dpr; pc.canvas.style.width = pw + 'px';
+        drawDistLineChart(pc.canvas, pc.data, pc.xLabel, dpr);
+      } else {
+        pc.canvas.width = pw * dpr; pc.canvas.height = 300 * dpr; pc.canvas.style.width = pw + 'px';
+        drawBoxPlot(pc.canvas, pc.data, pc.color, dpr);
+      }
+    });
+  });
+
+  renderCards();
+}
+
+// ── N2/P% Scatter Plot Modal (legacy, kept for reference) ──
 async function openScatterModal() {
   const dil = document.getElementById('selDilemma').value;
   const dilLabel = 'Dilemma-0' + dil;
@@ -1926,6 +2376,195 @@ function printAnalysis() {
   style.remove();
 }
 
+// ── Code Legend 생성 (차트 하단 범례) ──
+// labels: 코드값 배열, dilemmaNum: 현재 딜레마 번호 (1~4)
+function findCodeMatch(code) {
+  // 정확히 일치
+  let m = codeTabData.find(cd => cd.code === code);
+  if (m) return m;
+  // 대소문자 무시 + 오타 대응 (Shceme→Scheme 등)
+  const norm = code.toLowerCase().replace(/shceme/g, 'scheme').replace(/scehme/g, 'scheme');
+  m = codeTabData.find(cd => cd.code.toLowerCase().replace(/shceme/g, 'scheme').replace(/scehme/g, 'scheme') === norm);
+  return m || null;
+}
+
+function getCodeDesc(code, dilemmaNum) {
+  const matched = findCodeMatch(code);
+  if (!matched) return '';
+  // 해당 딜레마 설명이 있으면 사용, 없으면 B열(Dilemma-1) 설명을 fallback
+  const desc = matched.descs[dilemmaNum - 1] || '';
+  if (desc) return desc;
+  return matched.descs[0] || ''; // B열 fallback
+}
+
+function buildSchemeLegend(labels, dilemmaNum) {
+  const legendDiv = document.createElement('div');
+  legendDiv.style.cssText = 'margin-top:12px;padding:10px 12px;background:#f1f5f9;border-radius:6px;border:1px solid #e2e8f0;';
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;letter-spacing:.3px;';
+  title.textContent = '▪ 범례 (Legend)';
+  legendDiv.appendChild(title);
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:4px 16px;';
+  const colors = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+  labels.forEach((k, i) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#334155;line-height:1.5;';
+    const dot = document.createElement('span');
+    dot.style.cssText = 'width:10px;height:10px;border-radius:2px;flex-shrink:0;margin-top:3px;background:' + colors[i % colors.length] + ';';
+    const text = document.createElement('span');
+    const desc = getCodeDesc(k, dilemmaNum);
+    text.innerHTML = '<b>' + escHtml(k) + '</b>' + (desc ? ' : ' + escHtml(desc) : '');
+    item.append(dot, text);
+    grid.appendChild(item);
+  });
+  legendDiv.appendChild(grid);
+  return legendDiv;
+}
+
+// ── Scheme 관리 (Code 탭 CRUD) ──
+let schemeManagerData = []; // 현재 에디터 상태
+
+async function openSchemeManager() {
+  document.getElementById('schemeManagerOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  const body = document.getElementById('schemeManagerBody');
+  body.innerHTML = '<div class="summary-loading"><div class="dynamic-spinner"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div></div><div class="loading-text">Code 로드 중...</div></div>';
+
+  // Make draggable
+  const smH = document.getElementById('schemeManagerHeader');
+  const smB = smH.closest('.docs-modal-box');
+  if (smH && smB && !smH._dragInit) { makeDraggable(smH, smB); smH._dragInit = true; }
+
+  try {
+    await loadCodeTab();
+    schemeManagerData = codeTabData.map(d => ({ ...d, descs: [...d.descs] }));
+    renderSchemeManager();
+  } catch(e) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">로드 실패: ' + e.message + '</div>';
+  }
+}
+
+function closeSchemeManager() {
+  document.getElementById('schemeManagerOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function renderSchemeManager() {
+  const body = document.getElementById('schemeManagerBody');
+  if (schemeManagerData.length === 0) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">등록된 Code가 없습니다.<br><br><button class="btn btn-green" onclick="addSchemeRow()">＋ 첫 Code 추가</button></div>';
+    return;
+  }
+  const len = schemeManagerData.length;
+  let html = '<table class="scheme-mgr-table"><thead><tr>' +
+    '<th style="width:40px">No.</th>' +
+    '<th style="width:70px">순서</th>' +
+    '<th style="width:120px">A: Code</th>' +
+    '<th>B: Dilemma-1 설명</th>' +
+    '<th>C: Dilemma-2 설명</th>' +
+    '<th>D: Dilemma-3 설명</th>' +
+    '<th>E: Dilemma-4 설명</th>' +
+    '<th style="width:50px">삭제</th>' +
+    '</tr></thead><tbody>';
+  schemeManagerData.forEach((d, i) => {
+    const upDisabled = i === 0 ? ' disabled style="opacity:.3;cursor:default;"' : '';
+    const downDisabled = i === len - 1 ? ' disabled style="opacity:.3;cursor:default;"' : '';
+    html += '<tr>' +
+      '<td style="font-weight:700;color:#1e293b;">' + (i + 1) + '</td>' +
+      '<td class="scheme-mgr-actions">' +
+        '<button class="btn btn-gray" onclick="smMoveRow(' + i + ',-1)" title="위로"' + upDisabled + '>▲</button>' +
+        '<button class="btn btn-gray" onclick="smMoveRow(' + i + ',1)" title="아래로"' + downDisabled + '>▼</button>' +
+      '</td>' +
+      '<td><input type="text" value="' + escAttr(d.code) + '" onchange="smUpdateField(' + i + ',\'code\',this.value)" /></td>' +
+      '<td><textarea rows="2" onchange="smUpdateField(' + i + ',0,this.value)">' + escHtml(d.descs[0]) + '</textarea></td>' +
+      '<td><textarea rows="2" onchange="smUpdateField(' + i + ',1,this.value)">' + escHtml(d.descs[1]) + '</textarea></td>' +
+      '<td><textarea rows="2" onchange="smUpdateField(' + i + ',2,this.value)">' + escHtml(d.descs[2]) + '</textarea></td>' +
+      '<td><textarea rows="2" onchange="smUpdateField(' + i + ',3,this.value)">' + escHtml(d.descs[3]) + '</textarea></td>' +
+      '<td class="scheme-mgr-actions"><button class="btn btn-red" onclick="smDeleteRow(' + i + ')" title="삭제">✕</button></td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div style="display:flex;gap:10px;justify-content:center;margin-top:16px;">' +
+    '<button class="btn btn-green" onclick="addSchemeRow()">＋ 행 추가</button>' +
+    '<button class="btn btn-blue" onclick="smSaveAll()">💾 저장</button>' +
+    '</div>';
+  body.innerHTML = html;
+}
+
+function escAttr(s) { return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function smUpdateField(idx, field, value) {
+  if (field === 'code') {
+    schemeManagerData[idx].code = value;
+  } else {
+    schemeManagerData[idx].descs[field] = value;
+  }
+}
+
+function addSchemeRow() {
+  schemeManagerData.push({ code: '', descs: ['','','',''], rowIndex: -1 });
+  renderSchemeManager();
+  // 스크롤을 맨 아래로
+  const body = document.getElementById('schemeManagerBody');
+  body.scrollTop = body.scrollHeight;
+}
+
+function smMoveRow(idx, dir) {
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= schemeManagerData.length) return;
+  const temp = schemeManagerData[idx];
+  schemeManagerData[idx] = schemeManagerData[newIdx];
+  schemeManagerData[newIdx] = temp;
+  renderSchemeManager();
+}
+
+function smDeleteRow(idx) {
+  if (!confirm('이 Code를 삭제하시겠습니까?\n(' + (schemeManagerData[idx].code || '빈 값') + ')')) return;
+  schemeManagerData.splice(idx, 1);
+  renderSchemeManager();
+}
+
+async function smSaveAll() {
+  // Code 탭 전체를 덮어쓰기 (GAS에 saveCodes action 전송)
+  const payload = {
+    action: 'saveCodes',
+    codes: schemeManagerData.map(d => ({
+      code: d.code,
+      d1: d.descs[0],
+      d2: d.descs[1],
+      d3: d.descs[2],
+      d4: d.descs[3],
+    }))
+  };
+
+  const body = document.getElementById('schemeManagerBody');
+  const prevHtml = body.innerHTML;
+  body.innerHTML = '<div class="summary-loading"><div class="dynamic-spinner"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div></div><div class="loading-text">저장 중...</div></div>';
+
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect: 'follow'
+    });
+    const json = await resp.json();
+    if (json.status !== 'ok') throw new Error(json.message);
+    showToast('Code 저장 완료');
+    // 로컬 codeTabData도 갱신
+    await loadCodeTab();
+    schemeManagerData = codeTabData.map(d => ({ ...d, descs: [...d.descs] }));
+    renderSchemeManager();
+    // 메인 카드 뷰 갱신
+    renderCards();
+  } catch(err) {
+    console.error('Code 저장 실패:', err);
+    showToast('Code 저장 실패: ' + err.message, true);
+    body.innerHTML = prevHtml;
+  }
+}
+
 // ── 결과 시트 보기 (Google Sheet 읽기 모드로 새 창에 열기) ──
 function printSummarySheet() {
   const dil = document.getElementById('selDilemma').value;
@@ -1933,6 +2572,130 @@ function printSummarySheet() {
   const url = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
     + '/edit?gid=' + tab.gid + '#gid=' + tab.gid;
   window.open(url, '_blank');
+}
+
+// ── 스킴별 분포 선 그래프 ──
+function drawDistLineChart(canvas, seriesData, xLabel, dpr) {
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = canvas.width / dpr, H = canvas.height / dpr;
+  const padL = 55, padR = 25, padT = 30, padB = 50;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const colors = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+
+  ctx.clearRect(0, 0, W, H);
+
+  // 전체 값 범위 계산
+  let allVals = [];
+  seriesData.forEach(s => { allVals = allVals.concat(s.values); });
+  if (!allVals.length) return;
+
+  const vMin = Math.min(...allVals);
+  const vMax = Math.max(...allVals);
+  const range = vMax - vMin || 1;
+  const binCount = Math.min(20, Math.max(8, Math.ceil(Math.sqrt(allVals.length))));
+  const binW = range / binCount;
+
+  // 각 시리즈의 빈도 계산
+  let maxFreq = 0;
+  const seriesBins = seriesData.map(s => {
+    const bins = new Array(binCount).fill(0);
+    s.values.forEach(v => {
+      let idx = Math.floor((v - vMin) / binW);
+      if (idx >= binCount) idx = binCount - 1;
+      bins[idx]++;
+    });
+    const mf = Math.max(...bins);
+    if (mf > maxFreq) maxFreq = mf;
+    return bins;
+  });
+  if (maxFreq === 0) maxFreq = 1;
+
+  // Grid
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 5; i++) {
+    const y = padT + chartH - (chartH / 5) * i;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + chartW, y); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '11px Inter, sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(Math.round(maxFreq / 5 * i).toString(), padL - 8, y + 4);
+  }
+
+  // Axes
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + chartH); ctx.lineTo(padL + chartW, padT + chartH); ctx.stroke();
+
+  // X축 눈금
+  ctx.fillStyle = '#94a3b8'; ctx.font = '10px Inter, sans-serif'; ctx.textAlign = 'center';
+  for (let i = 0; i <= binCount; i += Math.max(1, Math.floor(binCount / 8))) {
+    const val = vMin + i * binW;
+    const x = padL + (i / binCount) * chartW;
+    ctx.fillText(val.toFixed(1), x, padT + chartH + 16);
+  }
+
+  // 각 시리즈의 선 그래프 그리기
+  seriesData.forEach((s, si) => {
+    const bins = seriesBins[si];
+    const color = colors[si % colors.length];
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+
+    for (let i = 0; i < binCount; i++) {
+      const x = padL + (i + 0.5) / binCount * chartW;
+      const y = padT + chartH - (bins[i] / maxFreq) * chartH;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // 점 표시
+    for (let i = 0; i < binCount; i++) {
+      if (bins[i] === 0) continue;
+      const x = padL + (i + 0.5) / binCount * chartW;
+      const y = padT + chartH - (bins[i] / maxFreq) * chartH;
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // 반투명 영역 채우기
+    ctx.fillStyle = color + '15';
+    ctx.beginPath();
+    ctx.moveTo(padL + 0.5 / binCount * chartW, padT + chartH);
+    for (let i = 0; i < binCount; i++) {
+      const x = padL + (i + 0.5) / binCount * chartW;
+      const y = padT + chartH - (bins[i] / maxFreq) * chartH;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(padL + (binCount - 0.5) / binCount * chartW, padT + chartH);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // Axis labels
+  ctx.fillStyle = '#334155'; ctx.font = 'bold 12px Inter, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(xLabel, padL + chartW / 2, H - 8);
+  ctx.save();
+  ctx.translate(14, padT + chartH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('빈도 (Frequency)', 0, 0);
+  ctx.restore();
+
+  // Legend (상단)
+  ctx.font = '11px Inter, sans-serif'; ctx.textAlign = 'left';
+  let lx = padL + 4;
+  seriesData.forEach((s, si) => {
+    const color = colors[si % colors.length];
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(lx, 14); ctx.lineTo(lx + 18, 14); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(lx + 9, 14, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#475569';
+    const labelText = s.label + '(n=' + s.values.length + ')';
+    ctx.fillText(labelText, lx + 22, 17);
+    lx += ctx.measureText(labelText).width + 36;
+  });
 }
 
 function drawFreqChart(canvas, data, dpr) {
