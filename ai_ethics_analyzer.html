@@ -490,6 +490,40 @@ body {
 .scheme-mgr-actions { display:flex; gap:2px; justify-content:center; align-items:center; flex-wrap:nowrap; white-space:nowrap; }
 .scheme-mgr-actions .btn { padding:2px 6px; font-size:10px; line-height:1; min-height:0; white-space:nowrap; flex-shrink:0; }
 
+/* ── Ethics Toggle Switch ── */
+.toggle-wrap {
+  display:flex; align-items:center; gap:6px;
+}
+.toggle-label {
+  font-size:12px; font-weight:600; color:#475569; white-space:nowrap;
+}
+.toggle-switch {
+  position:relative; width:40px; height:22px; cursor:pointer;
+}
+.toggle-switch input { opacity:0; width:0; height:0; }
+.toggle-slider {
+  position:absolute; inset:0; background:#cbd5e1; border-radius:22px;
+  transition:background .2s;
+}
+.toggle-slider::before {
+  content:''; position:absolute; left:3px; top:3px;
+  width:16px; height:16px; background:#fff; border-radius:50%;
+  transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.toggle-switch input:checked + .toggle-slider {
+  background:#3b82f6;
+}
+.toggle-switch input:checked + .toggle-slider::before {
+  transform:translateX(18px);
+}
+
+.card-header .ethics-score {
+  display:none;
+}
+.card-header .ethics-score.visible {
+  display:inline-flex;
+}
+
 /* ── Print ── */
 @media print {
   @page { size:landscape; margin:10mm; }
@@ -595,6 +629,13 @@ body {
         <span id="infoRight" style="font-size:14px;font-weight:600;color:#64748b;white-space:nowrap;">총 0건</span>
       </div>
       <div class="topbar-right" style="margin-left:auto;">
+        <div class="toggle-wrap">
+          <span class="toggle-label">DIT 결과 노출</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="ethicsToggle" onchange="toggleEthicsScores()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
         <button class="btn btn-gray" onclick="guardCheckUnsaved(loadData, 'reload')">Reload</button>
         <button class="btn btn-green" onclick="saveAll()">Save</button>
         <button class="btn btn-blue" onclick="openCombinedAnalysis()">결과 분석</button>
@@ -992,7 +1033,19 @@ function buildCard(row, dilemma) {
   ksoLabel.className = 'kso-label';
   ksoLabel.textContent = 'CODE(SCHEME)';
 
-  header.append(resid, makeTag('N2', fmtScore(row.C)), makeTag('P%', fmtScore(row.D)), makeTag('Age', row.E), modalBtn, ksoLabel);
+  const tagAge = makeTag('Age', row.E);
+  const tagN2 = makeTag('N2', fmtScore(row.C));
+  const tagP = makeTag('P%', fmtScore(row.D));
+  tagAge.classList.add('ethics-score');
+  tagN2.classList.add('ethics-score');
+  tagP.classList.add('ethics-score');
+  // Apply current toggle state
+  if (document.getElementById('ethicsToggle') && document.getElementById('ethicsToggle').checked) {
+    tagAge.classList.add('visible');
+    tagN2.classList.add('visible');
+    tagP.classList.add('visible');
+  }
+  header.append(resid, modalBtn, tagAge, tagN2, tagP, ksoLabel);
   card.appendChild(header);
 
   // ── Body ──
@@ -3087,6 +3140,15 @@ function drawBoxPlot(canvas, data, baseColor, dpr) {
   ctx.moveTo(padL + 110, 8); ctx.lineTo(padL+114, 12); ctx.lineTo(padL+110, 16); ctx.lineTo(padL+106, 12); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#475569';
   ctx.fillText('평균(Mean)', padL + 118, 15);
+}
+
+// ── 윤리지수 토글 ──
+function toggleEthicsScores() {
+  const checked = document.getElementById('ethicsToggle').checked;
+  document.querySelectorAll('.card-header .ethics-score').forEach(el => {
+    if (checked) el.classList.add('visible');
+    else el.classList.remove('visible');
+  });
 }
 
 // ── 종료 모달 ──
