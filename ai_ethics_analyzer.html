@@ -621,7 +621,7 @@ body {
           <option value="4">Dilemma-04</option>
         </select>
         <select id="selScheme">
-          <option value="전체">Scheme</option>
+          <option value="전체">Assessment</option>
         </select>
         <select id="selResID">
           <option value="" disabled selected hidden>ResID</option>
@@ -937,7 +937,7 @@ function populateFilterDropdowns() {
   const prev = sel.value;
   sel.innerHTML = '';
   const def = document.createElement('option');
-  def.value = '전체'; def.textContent = 'Scheme';
+  def.value = '전체'; def.textContent = 'Assessment';
   def.disabled = true; def.hidden = true;
   sel.appendChild(def);
   const allOpt = document.createElement('option');
@@ -1033,7 +1033,7 @@ function buildCard(row, dilemma) {
 
   const ksoLabel = document.createElement('span');
   ksoLabel.className = 'kso-label';
-  ksoLabel.textContent = 'CODE(SCHEME)';
+  ksoLabel.textContent = 'ASSESSMENT';
 
   const tagAge = makeTag('Age', row.E);
   const tagN2 = makeTag('N2', fmtScore(row.C));
@@ -1067,12 +1067,12 @@ function buildCard(row, dilemma) {
   respArea.appendChild(makeRespRow('Response-1', getCellVal(row, dm.r1)));
   respArea.appendChild(makeRespRow('Response-2', getCellVal(row, dm.r2)));
 
-  // Keyword field below Response-2 → R-Clarify-A
+  // Keyword field below Response-2 → Analysis-A
   const kwRow = document.createElement('div');
   kwRow.className = 'resp-row';
   const kwLbl = document.createElement('div');
   kwLbl.className = 'resp-label-side';
-  kwLbl.textContent = 'R-Clarify-A';
+  kwLbl.textContent = 'Analysis-A';
   const kwInput = document.createElement('textarea');
   kwInput.className = 'kso-field-input editable-field';
   kwInput.style.cssText = 'flex:1;min-width:0;resize:none;overflow:hidden;';
@@ -1087,12 +1087,12 @@ function buildCard(row, dilemma) {
   kwRow.append(kwLbl, kwInput);
   respArea.appendChild(kwRow);
 
-  // Scheme field (was Scheme) → R-Clarify-B (동일한 textarea 형태)
+  // Scheme field (was Scheme) → Analysis-B (동일한 textarea 형태)
   const scRow = document.createElement('div');
   scRow.className = 'resp-row';
   const scLbl = document.createElement('div');
   scLbl.className = 'resp-label-side';
-  scLbl.textContent = 'R-Clarify-B';
+  scLbl.textContent = 'Analysis-B';
   const scInput = document.createElement('textarea');
   scInput.className = 'kso-field-input editable-field';
   scInput.style.cssText = 'flex:1;min-width:0;resize:none;overflow:hidden;';
@@ -1485,7 +1485,7 @@ function openModal(row) {
     section.innerHTML = `
       <div class="modal-dilemma-header">
         <span class="modal-dilemma-title">${DILEMMA_LABELS[i]}</span>
-        <span class="modal-dilemma-kso-label" style="font-weight:700;text-transform:uppercase;">CODE(SCHEME)</span>
+        <span class="modal-dilemma-kso-label" style="font-weight:700;text-transform:uppercase;">ASSESSMENT</span>
       </div>
       <div class="modal-dilemma-body">
         <div class="modal-resp-area">
@@ -1498,11 +1498,11 @@ function openModal(row) {
             <div class="modal-resp-text">${escHtml(r2)}</div>
           </div>
           <div class="modal-resp-row">
-            <span class="modal-resp-label">R-Clarify-A</span>
+            <span class="modal-resp-label">Analysis-A</span>
             <div class="modal-resp-text">${escHtml(kw)}</div>
           </div>
           <div class="modal-resp-row">
-            <span class="modal-resp-label">R-Clarify-B</span>
+            <span class="modal-resp-label">Analysis-B</span>
             <div class="modal-resp-text">${escHtml(sc)}</div>
           </div>
         </div>
