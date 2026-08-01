@@ -251,6 +251,8 @@ body {
   white-space:nowrap;
 }
 .card-header .btn-modal:hover { background:#3b82f6; color:#fff; border-color:#3b82f6; }
+.card-header .btn-modal.dit-failed { color:#dc2626; border-color:#fca5a5; font-weight:700; }
+.card-header .btn-modal.dit-failed:hover { background:#dc2626; color:#fff; border-color:#dc2626; }
 .card-header .meta-tag {
   font-weight:600; color:#475569; font-size:12px;
   background:#e2e8f0; padding:2px 7px; border-radius:4px;
@@ -1044,6 +1046,12 @@ function buildCard(row, dilemma) {
     tagAge.classList.add('visible');
     tagN2.classList.add('visible');
     tagP.classList.add('visible');
+  }
+
+  // N2가 IRD인 경우 버튼을 DIT FAILED로 표시
+  if ((row.C || '').trim().toUpperCase() === 'IRD') {
+    modalBtn.textContent = 'DIT FAILED';
+    modalBtn.classList.add('dit-failed');
   }
   header.append(resid, modalBtn, tagAge, tagN2, tagP, ksoLabel);
   card.appendChild(header);
