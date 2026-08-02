@@ -670,7 +670,7 @@ body {
           <option value="" disabled selected hidden>ResID</option>
         </select>
         <button class="btn btn-dark" onclick="openDocsModal()">Dilemma</button>
-        <button class="btn btn-dark" onclick="openSchemeManager()">Code 관리</button>
+        <button class="btn btn-dark" onclick="guardCheckUnsaved(openSchemeManager, 'codeManager')">Code 관리</button>
         <span id="infoRight" style="font-size:14px;font-weight:600;color:#64748b;white-space:nowrap;">총 0건</span>
       </div>
       <div class="topbar-right" style="margin-left:auto;">
@@ -683,9 +683,9 @@ body {
         </div>
         <button class="btn btn-gray" onclick="guardCheckUnsaved(loadData, 'reload')">Reload</button>
         <button class="btn btn-green" onclick="saveAll()">Save</button>
-        <button class="btn btn-blue" onclick="openCombinedAnalysis()">결과 분석</button>
+        <button class="btn btn-blue" onclick="guardCheckUnsaved(openCombinedAnalysis, 'analysis')">결과 분석</button>
         <button class="btn btn-red" onclick="printSummarySheet()">결과 시트</button>
-        <button class="btn btn-blue" onclick="printCards()" style="background:#7c3aed;">출력</button>
+        <button class="btn btn-blue" onclick="guardCheckUnsaved(printCards, 'print')" style="background:#7c3aed;">출력</button>
         <button class="btn btn-dark" onclick="showExitConfirm()">종료</button>
       </div>
     </div>
