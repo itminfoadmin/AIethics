@@ -329,6 +329,34 @@ body {
   transition:background .15s;
 }
 .modal-close-btn:hover { background:rgba(255,255,255,.25); }
+.modal-edit-btn {
+  background:rgba(59,130,246,.7); color:#fff; border:1px solid rgba(59,130,246,.5);
+  border-radius:6px; padding:5px 12px; font-size:13px; font-weight:600; cursor:pointer;
+  transition:all .15s;
+}
+.modal-edit-btn:hover { background:rgba(59,130,246,.9); }
+.modal-edit-btn.active { background:#f59e0b; border-color:#f59e0b; }
+.modal-edit-btn.active:hover { background:#d97706; border-color:#d97706; }
+
+/* Modal editable fields */
+.modal-resp-text.editable {
+  background:#fff; border:2px solid #3b82f6; cursor:text;
+  outline:none; min-height:60px;
+}
+.modal-resp-text.editable:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
+.modal-assessment-select {
+  width:100%; border:2px solid #3b82f6; border-radius:5px;
+  padding:5px 8px; font-size:12px; font-family:inherit; color:#1e293b;
+  background:#fff; font-weight:600; cursor:pointer;
+  transition:border-color .15s;
+}
+.modal-assessment-select:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
+.modal-save-bar {
+  display:none; padding:10px 24px; background:#fffbeb; border-top:2px solid #f59e0b;
+  text-align:center; flex-shrink:0;
+}
+.modal-save-bar.show { display:flex; align-items:center; justify-content:center; gap:12px; }
+.modal-save-bar .save-info { font-size:13px; color:#92400e; font-weight:600; }
 .modal-body { padding:0; flex:1; overflow-y:auto; border-radius:0 0 10px 10px; }
 
 .modal-dilemma { padding:16px 24px; border-bottom:1px solid #f1f5f9; }
@@ -716,9 +744,17 @@ body {
         <div class="modal-sep"></div>
         <span><span class="modal-field-label">Age</span> <span class="modal-field-value" id="mAge">-</span></span>
       </div>
-      <button class="modal-close-btn" onclick="closeModal()">닫기 ✕</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="modal-edit-btn" id="modalEditBtn" onclick="toggleModalEdit()">수정 ✎</button>
+        <button class="modal-close-btn" onclick="closeModal()">닫기 ✕</button>
+      </div>
     </div>
     <div class="modal-body" id="modalBody"></div>
+    <div class="modal-save-bar" id="modalSaveBar">
+      <span class="save-info">수정 모드 — 변경 후 저장 버튼을 눌러주세요</span>
+      <button class="btn btn-green" onclick="saveModalEdits()" style="padding:6px 20px;">저장</button>
+      <button class="btn btn-gray" onclick="cancelModalEdit()" style="padding:6px 14px;">취소</button>
+    </div>
   </div>
 </div>
 
@@ -1505,14 +1541,28 @@ const DILEMMA_LABELS = [
 ];
 let modalRow = null;
 
+let modalEditMode = false;
+
 function openModal(row) {
   modalRow = row;
+  modalEditMode = false;
+  document.getElementById('modalEditBtn').textContent = '수정 ✎';
+  document.getElementById('modalEditBtn').classList.remove('active');
+  document.getElementById('modalSaveBar').classList.remove('show');
   document.getElementById('mNo').textContent = row.A || '-';
   document.getElementById('mResID').textContent = row.B || '-';
   document.getElementById('mN2').textContent = fmtScore(row.C);
   document.getElementById('mP').textContent = fmtScore(row.D);
   document.getElementById('mAge').textContent = row.E || '-';
 
+  renderModalBody(row, false);
+
+  document.getElementById('modalOverlay').classList.add('show');
+  document.getElementById('modalBody').scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+
+function renderModalBody(row, editMode) {
   const body = document.getElementById('modalBody');
   body.innerHTML = '';
 
@@ -1526,6 +1576,33 @@ function openModal(row) {
 
     const section = document.createElement('div');
     section.className = 'modal-dilemma';
+
+    // Analysis-A / Analysis-B content
+    let kwHtml, scHtml;
+    if (editMode) {
+      kwHtml = `<textarea class="modal-resp-text editable modal-edit-field" data-dilemma="${d}" data-field="keyword" data-rownum="${row.rowNum}" rows="2" style="resize:vertical;font-family:inherit;font-size:13px;line-height:1.6;color:#475569;width:100%;box-sizing:border-box;">${escHtml(kw)}</textarea>`;
+      scHtml = `<textarea class="modal-resp-text editable modal-edit-field" data-dilemma="${d}" data-field="scheme" data-rownum="${row.rowNum}" rows="2" style="resize:vertical;font-family:inherit;font-size:13px;line-height:1.6;color:#475569;width:100%;box-sizing:border-box;">${escHtml(sc)}</textarea>`;
+    } else {
+      kwHtml = `<div class="modal-resp-text">${escHtml(kw)}</div>`;
+      scHtml = `<div class="modal-resp-text">${escHtml(sc)}</div>`;
+    }
+
+    // ASSESSMENT (orientation) content
+    let oriHtml;
+    if (editMode) {
+      let optionsHtml = '<option value="">-- 선택 --</option>';
+      codeTabData.forEach(cd => {
+        const sel = (cd.code === ori) ? ' selected' : '';
+        optionsHtml += `<option value="${escHtml(cd.code)}"${sel}>${escHtml(cd.code)}</option>`;
+      });
+      if (ori && !codeTabData.some(cd => cd.code === ori)) {
+        optionsHtml += `<option value="${escHtml(ori)}" selected>${escHtml(ori)}</option>`;
+      }
+      oriHtml = `<select class="modal-assessment-select modal-edit-field" data-dilemma="${d}" data-field="orientation" data-rownum="${row.rowNum}">${optionsHtml}</select>`;
+    } else {
+      oriHtml = `<div class="modal-kso-value">${escHtml(ori)}</div>`;
+    }
+
     section.innerHTML = `
       <div class="modal-dilemma-header">
         <span class="modal-dilemma-title">${DILEMMA_LABELS[i]}</span>
@@ -1543,26 +1620,132 @@ function openModal(row) {
           </div>
           <div class="modal-resp-row">
             <span class="modal-resp-label">Analysis-A</span>
-            <div class="modal-resp-text">${escHtml(kw)}</div>
+            ${kwHtml}
           </div>
           <div class="modal-resp-row">
             <span class="modal-resp-label">Analysis-B</span>
-            <div class="modal-resp-text">${escHtml(sc)}</div>
+            ${scHtml}
           </div>
         </div>
         <div class="modal-kso-area">
-          <div class="modal-kso-row"><span class="modal-kso-label" style="font-weight:700;text-transform:uppercase;">CODE</span><div class="modal-kso-value">${escHtml(ori)}</div></div>
+          <div class="modal-kso-row">${oriHtml}</div>
         </div>
       </div>`;
     body.appendChild(section);
   });
 
-  document.getElementById('modalOverlay').classList.add('show');
-  document.getElementById('modalBody').scrollTop = 0;
-  document.body.style.overflow = 'hidden';
+  // Auto-resize textareas in edit mode
+  if (editMode) {
+    body.querySelectorAll('textarea.modal-edit-field').forEach(ta => {
+      const autoResize = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+      ta.addEventListener('input', autoResize);
+      setTimeout(autoResize, 0);
+    });
+  }
+}
+
+function toggleModalEdit() {
+  if (!modalRow) return;
+  modalEditMode = !modalEditMode;
+  const btn = document.getElementById('modalEditBtn');
+  const bar = document.getElementById('modalSaveBar');
+
+  if (modalEditMode) {
+    btn.textContent = '수정 중 ✎';
+    btn.classList.add('active');
+    bar.classList.add('show');
+  } else {
+    btn.textContent = '수정 ✎';
+    btn.classList.remove('active');
+    bar.classList.remove('show');
+  }
+
+  renderModalBody(modalRow, modalEditMode);
+}
+
+function cancelModalEdit() {
+  modalEditMode = false;
+  document.getElementById('modalEditBtn').textContent = '수정 ✎';
+  document.getElementById('modalEditBtn').classList.remove('active');
+  document.getElementById('modalSaveBar').classList.remove('show');
+  renderModalBody(modalRow, false);
+}
+
+async function saveModalEdits() {
+  if (!modalRow) return;
+  const fields = document.querySelectorAll('.modal-edit-field');
+  const updates = [];
+
+  fields.forEach(el => {
+    const rowNum = parseInt(el.dataset.rownum);
+    const dil = el.dataset.dilemma;
+    const field = el.dataset.field;
+    const dm = DILEMMA_MAP[dil];
+    const colIdx = dm[field];
+    const colKey = field + 'Col';
+    const newVal = el.tagName === 'SELECT' ? el.value : el.value;
+    const matchRow = allData.find(r => r.rowNum === rowNum);
+    const original = (matchRow && matchRow.raw && colIdx < matchRow.raw.length)
+      ? matchRow.raw[colIdx] : '';
+    if (newVal.trim() !== original.trim()) {
+      updates.push({ row: rowNum, col: dm[colKey], value: newVal, colIdx: colIdx });
+    }
+  });
+
+  if (updates.length === 0) {
+    showToast('변경사항이 없습니다.');
+    cancelModalEdit();
+    return;
+  }
+
+  // Show saving state
+  const saveBar = document.getElementById('modalSaveBar');
+  saveBar.innerHTML = '<span class="save-info">저장 중...</span>';
+
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'save', updates: updates.map(u => ({ row: u.row, col: u.col, value: u.value })) }),
+      redirect: 'follow'
+    });
+    const json = await resp.json();
+    if (json.status !== 'ok') throw new Error(json.message);
+
+    // Sync local data
+    updates.forEach(u => {
+      const matchRow = allData.find(r => r.rowNum === u.row);
+      if (matchRow && matchRow.raw && u.colIdx < matchRow.raw.length) {
+        matchRow.raw[u.colIdx] = u.value;
+      }
+    });
+
+    showToast(updates.length + '건 저장 완료!');
+
+    // Exit edit mode and refresh modal
+    modalEditMode = false;
+    document.getElementById('modalEditBtn').textContent = '수정 ✎';
+    document.getElementById('modalEditBtn').classList.remove('active');
+    saveBar.classList.remove('show');
+    saveBar.innerHTML = '<span class="save-info">수정 모드 — 변경 후 저장 버튼을 눌러주세요</span><button class="btn btn-green" onclick="saveModalEdits()" style="padding:6px 20px;">저장</button><button class="btn btn-gray" onclick="cancelModalEdit()" style="padding:6px 14px;">취소</button>';
+
+    // Re-render modal body with updated data
+    renderModalBody(modalRow, false);
+
+    // Also refresh the card list to reflect changes
+    renderCards();
+
+  } catch(err) {
+    console.error('저장 실패:', err);
+    saveBar.innerHTML = '<span class="save-info" style="color:#dc2626;">저장 실패: ' + err.message + '</span><button class="btn btn-green" onclick="saveModalEdits()" style="padding:6px 20px;">재시도</button><button class="btn btn-gray" onclick="cancelModalEdit()" style="padding:6px 14px;">취소</button>';
+  }
 }
 
 function closeModal() {
+  modalEditMode = false;
+  document.getElementById('modalEditBtn').textContent = '수정 ✎';
+  document.getElementById('modalEditBtn').classList.remove('active');
+  document.getElementById('modalSaveBar').classList.remove('show');
   document.getElementById('modalOverlay').classList.remove('show');
   document.body.style.overflow = '';
   modalRow = null;
