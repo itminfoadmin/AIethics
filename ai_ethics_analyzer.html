@@ -2184,6 +2184,72 @@ async function openCombinedAnalysis() {
     masterWrap.appendChild(freqSec);
     pendingScheme.push({ canvas: freqCanvas, type: 'freq', data: allLabelsForFreq.map(k => ({ label: k, count: groups[k].count })) });
 
+    // ── Scheme별 선택(①/②) 빈도 분석 ──
+    {
+      const choiceGroups = {};
+      allData.forEach(r => {
+        const key = getCellVal(r, groupIdx);
+        if (!key) return;
+        if (!choiceGroups[key]) choiceGroups[key] = { '①': 0, '②': 0, '기타': 0, total: 0 };
+        const r1Text = getCellVal(r, dm.r1);
+        if (r1Text.includes('①')) choiceGroups[key]['①']++;
+        else if (r1Text.includes('②')) choiceGroups[key]['②']++;
+        else choiceGroups[key]['기타']++;
+        choiceGroups[key].total++;
+      });
+
+      const choiceSec = document.createElement('div');
+      choiceSec.className = 'analysis-chart-section';
+      const choiceTitle = document.createElement('div');
+      choiceTitle.className = 'analysis-chart-title';
+      choiceTitle.textContent = groupLabel + '별 선택 빈도 (①/② 선택 분석)';
+      const choiceWrap = document.createElement('div');
+      choiceWrap.className = 'analysis-chart-wrap';
+      const choiceCanvas = document.createElement('canvas');
+      choiceCanvas.style.width = '100%'; choiceCanvas.style.height = '320px';
+      choiceWrap.appendChild(choiceCanvas);
+
+      // Legend for choices
+      const choiceLegendDiv = document.createElement('div');
+      choiceLegendDiv.style.cssText = 'margin-top:12px;padding:10px 12px;background:#f1f5f9;border-radius:6px;border:1px solid #e2e8f0;display:flex;gap:24px;align-items:center;';
+      const choiceColors = { '①': '#3b82f6', '②': '#f59e0b', '기타': '#94a3b8' };
+      ['①', '②', '기타'].forEach(lbl => {
+        const item = document.createElement('span');
+        item.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#334155;';
+        item.innerHTML = '<span style="width:14px;height:14px;border-radius:3px;background:' + choiceColors[lbl] + ';display:inline-block;"></span>' + lbl;
+        choiceLegendDiv.appendChild(item);
+      });
+      choiceWrap.appendChild(choiceLegendDiv);
+      choiceSec.append(choiceTitle, choiceWrap);
+      masterWrap.appendChild(choiceSec);
+      pendingScheme.push({ canvas: choiceCanvas, type: 'choiceFreq', data: labels.filter(k => choiceGroups[k]).map(k => ({ label: k, c1: choiceGroups[k]['①'], c2: choiceGroups[k]['②'], etc: choiceGroups[k]['기타'], total: choiceGroups[k].total })) });
+
+      // Summary table
+      const choiceSumSec = document.createElement('div');
+      choiceSumSec.className = 'analysis-summary';
+      let choiceTbl = '<table><thead><tr><th>Code</th><th>설명</th><th>① 선택</th><th>② 선택</th><th>기타</th><th>합계</th><th>① 비율</th><th>② 비율</th><th>기타 비율</th></tr></thead><tbody>';
+      let totalC1=0, totalC2=0, totalEtc=0, totalAll=0;
+      labels.forEach(k => {
+        if (!choiceGroups[k]) return;
+        const cg = choiceGroups[k];
+        const codeDesc = getCodeDesc(k, dilNum);
+        totalC1 += cg['①']; totalC2 += cg['②']; totalEtc += cg['기타']; totalAll += cg.total;
+        choiceTbl += '<tr><td style="font-weight:600;color:#1e293b">' + escHtml(k) + '</td><td style="color:#64748b;font-size:11px">' + escHtml(codeDesc) + '</td>';
+        choiceTbl += '<td>' + cg['①'] + '</td><td>' + cg['②'] + '</td><td>' + cg['기타'] + '</td><td style="font-weight:600">' + cg.total + '</td>';
+        choiceTbl += '<td style="color:#3b82f6;font-weight:600">' + (cg.total ? (cg['①']/cg.total*100).toFixed(1) : '0.0') + '%</td>';
+        choiceTbl += '<td style="color:#f59e0b;font-weight:600">' + (cg.total ? (cg['②']/cg.total*100).toFixed(1) : '0.0') + '%</td>';
+        choiceTbl += '<td style="color:#94a3b8;font-weight:600">' + (cg.total ? (cg['기타']/cg.total*100).toFixed(1) : '0.0') + '%</td></tr>';
+      });
+      choiceTbl += '<tr style="background:#f1f5f9;font-weight:600"><td colspan="2">전체</td>';
+      choiceTbl += '<td>' + totalC1 + '</td><td>' + totalC2 + '</td><td>' + totalEtc + '</td><td>' + totalAll + '</td>';
+      choiceTbl += '<td style="color:#3b82f6">' + (totalAll ? (totalC1/totalAll*100).toFixed(1) : '0.0') + '%</td>';
+      choiceTbl += '<td style="color:#f59e0b">' + (totalAll ? (totalC2/totalAll*100).toFixed(1) : '0.0') + '%</td>';
+      choiceTbl += '<td style="color:#94a3b8">' + (totalAll ? (totalEtc/totalAll*100).toFixed(1) : '0.0') + '%</td></tr>';
+      choiceTbl += '</tbody></table>';
+      choiceSumSec.innerHTML = choiceTbl;
+      masterWrap.appendChild(choiceSumSec);
+    }
+
     // Scheme Combination 분석만 표시
     if (schemeLabels.length > 0) {
       // ── N2 Scheme Combination 섹션 ──
@@ -2260,6 +2326,9 @@ async function openCombinedAnalysis() {
       if (pc.type === 'freq') {
         pc.canvas.width = pw * dpr; pc.canvas.height = 280 * dpr; pc.canvas.style.width = pw + 'px';
         drawFreqChart(pc.canvas, pc.data, dpr);
+      } else if (pc.type === 'choiceFreq') {
+        pc.canvas.width = pw * dpr; pc.canvas.height = 320 * dpr; pc.canvas.style.width = pw + 'px';
+        drawChoiceFreqChart(pc.canvas, pc.data, dpr);
       } else if (pc.type === 'dist') {
         pc.canvas.width = pw * dpr; pc.canvas.height = 300 * dpr; pc.canvas.style.width = pw + 'px';
         drawDistLineChart(pc.canvas, pc.data, pc.xLabel, dpr);
@@ -3231,6 +3300,75 @@ function drawFreqChart(canvas, data, dpr) {
     } else {
       ctx.textAlign = 'center';
       ctx.fillText(d.label.length > 16 ? d.label.slice(0,15)+'…' : d.label, lx, ly);
+    }
+    ctx.restore();
+  });
+}
+
+function drawChoiceFreqChart(canvas, data, dpr) {
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = canvas.width / dpr, H = canvas.height / dpr;
+  const padL = 50, padR = 20, padT = 28, padB = 60;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  ctx.clearRect(0, 0, W, H);
+  if (!data.length) return;
+
+  const maxTotal = Math.max(...data.map(d => d.total), 1);
+  const gap = chartW / data.length;
+  const barW = Math.min(56, gap * 0.5);
+  const colors = { c1: '#3b82f6', c2: '#f59e0b', etc: '#94a3b8' };
+  const labels = ['c1', 'c2', 'etc'];
+  const labelNames = { c1: '①', c2: '②', etc: '기타' };
+
+  // Grid
+  const gridLines = 5;
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+  ctx.fillStyle = '#94a3b8'; ctx.font = '11px Inter, sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= gridLines; i++) {
+    const val = Math.round(maxTotal * i / gridLines);
+    const y = padT + chartH - (chartH * i / gridLines);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillText(val, padL - 6, y + 4);
+  }
+
+  // Stacked bars
+  data.forEach((d, i) => {
+    const x = padL + gap * i + (gap - barW) / 2;
+    let cumY = padT + chartH;
+
+    labels.forEach(key => {
+      const count = d[key];
+      if (count <= 0) return;
+      const segH = (count / maxTotal) * chartH;
+      cumY -= segH;
+      ctx.fillStyle = colors[key];
+      ctx.beginPath(); ctx.roundRect(x, cumY, barW, segH, [2,2,0,0]); ctx.fill();
+
+      // Count label inside segment if tall enough
+      if (segH > 16) {
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Inter, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(count, x + barW / 2, cumY + segH / 2 + 4);
+      }
+    });
+
+    // Total on top
+    const totalY = padT + chartH - (d.total / maxTotal) * chartH;
+    ctx.fillStyle = '#1e293b'; ctx.font = 'bold 12px Inter, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(d.total, x + barW / 2, totalY - 8);
+
+    // Label
+    ctx.save();
+    ctx.fillStyle = '#334155'; ctx.font = '12px Inter, sans-serif';
+    const lx = x + barW / 2, ly = padT + chartH + 16;
+    if (data.length > 5) {
+      ctx.translate(lx, ly); ctx.rotate(-Math.PI / 7); ctx.textAlign = 'right';
+      ctx.fillText(d.label.length > 12 ? d.label.slice(0, 11) + '…' : d.label, 0, 0);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.fillText(d.label.length > 16 ? d.label.slice(0, 15) + '…' : d.label, lx, ly);
     }
     ctx.restore();
   });
