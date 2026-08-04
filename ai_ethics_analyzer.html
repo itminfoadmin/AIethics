@@ -162,26 +162,7 @@ body {
 @keyframes slideBar { 0%{transform:translateX(-100%)} 50%{transform:translateX(300%)} 100%{transform:translateX(600%)} }
 @keyframes shimmerText { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
 
-/* ── Summary Sheet Modal ── */
-.summary-overlay {
-  display:none; position:fixed; inset:0; background:rgba(15,23,42,.55);
-  z-index:2000; backdrop-filter:blur(2px);
-}
-.summary-overlay.show { display:block; }
-.summary-box {
-  background:#fff; width:94%; max-width:1300px; height:88vh; border-radius:10px;
-  box-shadow:0 20px 60px rgba(0,0,0,.25);
-  position:absolute; left:50%; top:30px; transform:translateX(-50%);
-  display:flex; flex-direction:column;
-}
-.summary-header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:14px 24px; background:linear-gradient(135deg,#1e293b,#334155);
-  border-radius:10px 10px 0 0; color:#fff;
-  cursor:grab; user-select:none; flex-shrink:0;
-}
-.summary-header:active { cursor:grabbing; }
-.summary-title { font-size:15px; font-weight:700; letter-spacing:.5px; }
+/* ── Summary / Code Manager shared styles ── */
 .summary-body {
   flex:1; overflow:auto; padding:16px;
   border-radius:0 0 10px 10px;
@@ -214,12 +195,6 @@ body {
   -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
   animation:shimmerText 2s ease-in-out infinite;
 }
-
-.info-bar {
-  background:#f8fafc; padding:6px 20px; border-bottom:1px solid #e2e8f0;
-  font-size:12px; color:#94a3b8; display:flex; justify-content:space-between;
-}
-.info-bar-inner { max-width:80%; margin:0 auto; display:flex; justify-content:space-between; width:100%; }
 
 /* ── Header spacer ── */
 .header-spacer { height:120px; }
@@ -578,7 +553,7 @@ body {
     border:2px solid #94a3b8; font-size:10px; padding:3px 5px; font-weight:600;
   }
 
-  /* 분석 모달 인쇄 모드 (A4 세로) */
+  /* 분석 모달 인쇄 모드 (Letter 세로) */
   body.printing-analysis { }
   body.printing-analysis .page-wrap { display:none !important; }
   body.printing-analysis .modal-overlay,
@@ -617,8 +592,14 @@ body {
   body.printing-analysis .analysis-chart-section {
     break-inside:avoid;
   }
+  /* 페이지 나눔 */
+  body.printing-analysis .analysis-print-page-break {
+    page-break-before:always !important;
+    break-before:page !important;
+  }
 
-  /* 카드 출력 모드 (Letter 세로) */
+  /* 인쇄 시 본문 요소 모두 숨김 (display:none으로 레이아웃 공간 제거) */
+  body.printing-cards .page-wrap,
   body.printing-cards .fixed-header,
   body.printing-cards .header-spacer,
   body.printing-cards .loading-overlay,
@@ -626,40 +607,44 @@ body {
   body.printing-cards .modal-overlay,
   body.printing-cards .docs-modal-overlay,
   body.printing-cards .analysis-overlay,
-  body.printing-cards .summary-overlay,
   body.printing-cards .exit-modal-overlay,
   body.printing-cards .error-modal-overlay,
+  body.printing-cards #guardModalOverlay,
   body.printing-cards #schemeManagerOverlay { display:none !important; }
-  body.printing-cards { background:#fff; }
-  body.printing-cards .page-wrap { max-width:100%; }
-  body.printing-cards .card-list { padding:0; }
-  body.printing-cards .card {
-    break-inside:avoid; border:1px solid #ccc; border-radius:0;
-    margin-bottom:8px; box-shadow:none;
+  body.printing-cards #printReportOverlay { display:block !important; }
+  body.printing-cards { background:#fff; margin:0; padding:0; }
+  body.printing-cards .print-report-title {
+    text-align:center; font-size:16px; font-weight:700;
+    font-family:'Courier New', 'Malgun Gothic', monospace;
+    padding:10px 0 12px; letter-spacing:1px; color:#000;
   }
-  body.printing-cards .card[style*="display: none"],
-  body.printing-cards .card[style*="display:none"] { display:none !important; }
-  body.printing-cards .card-header {
-    background:#f0f0f0 !important; border-bottom:1px solid #ccc; padding:6px 10px;
-    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  body.printing-cards .print-report-table {
+    width:100%; border-collapse:collapse; font-size:10px;
+    font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    table-layout:fixed;
   }
-  body.printing-cards .card-responses { padding:8px 10px; }
-  body.printing-cards .card-kso-area {
-    width:180px; min-width:180px; max-width:180px;
-    padding:6px 8px; border-left:1px solid #ccc;
+  body.printing-cards .print-report-table th {
+    background:#e8e8e8 !important; color:#000; font-weight:700;
+    padding:6px 4px; border:1px solid #999; text-align:center;
+    font-size:9.5px; -webkit-print-color-adjust:exact; print-color-adjust:exact;
   }
-  body.printing-cards .card-header .kso-label { width:180px; font-size:10px; }
-  body.printing-cards .resp-text {
-    border:1px solid #ddd; font-size:11px; padding:5px 7px;
-    max-height:none; overflow:visible;
+  body.printing-cards .print-report-table td {
+    padding:5px 5px; border:1px solid #999; vertical-align:top;
+    word-break:break-word; white-space:pre-wrap; color:#000;
+    line-height:1.45;
   }
-  body.printing-cards .resp-label-side { font-size:10px; width:70px; min-width:70px; }
-  body.printing-cards .kso-field-input {
-    border:2px solid #94a3b8; font-size:10px; padding:3px 5px; font-weight:600;
-  }
-  body.printing-cards .card-header .meta-tag {
-    -webkit-print-color-adjust:exact; print-color-adjust:exact;
-  }
+  body.printing-cards .print-report-table td.center { text-align:center; }
+  body.printing-cards .print-report-table tr { break-inside:avoid; }
+  /* 열 너비 비율 지정 */
+  body.printing-cards .print-report-table col.col-resid    { width:8%; }
+  body.printing-cards .print-report-table col.col-assess   { width:7%; }
+  body.printing-cards .print-report-table col.col-age      { width:4%; }
+  body.printing-cards .print-report-table col.col-n2       { width:5%; }
+  body.printing-cards .print-report-table col.col-p        { width:5%; }
+  body.printing-cards .print-report-table col.col-resp1    { width:7%; }
+  body.printing-cards .print-report-table col.col-resp2    { width:33%; }
+  body.printing-cards .print-report-table col.col-analysisA{ width:17%; }
+  body.printing-cards .print-report-table col.col-analysisB{ width:14%; }
 }
 </style>
 </head>
@@ -705,9 +690,9 @@ body {
         </div>
         <button class="btn btn-gray" onclick="guardCheckUnsaved(loadData, 'reload')">Reload</button>
         <button class="btn btn-green" onclick="saveAll()">Save</button>
-        <button class="btn btn-blue" onclick="guardCheckUnsaved(openCombinedAnalysis, 'analysis')">결과 분석</button>
         <button class="btn btn-red" onclick="printSummarySheet()">결과 시트</button>
-        <button class="btn btn-blue" onclick="guardCheckUnsaved(printCards, 'print')" style="background:#7c3aed;">출력</button>
+        <button class="btn btn-blue" onclick="guardCheckUnsaved(openCombinedAnalysis, 'analysis')">자료 분석</button>
+        <button class="btn btn-blue" onclick="guardCheckUnsaved(printCards, 'print')" style="background:#7c3aed;">자료 인쇄</button>
         <button class="btn btn-dark" onclick="showExitConfirm()">종료</button>
       </div>
     </div>
@@ -774,8 +759,6 @@ body {
     <div class="analysis-body" id="analysisBody"></div>
   </div>
 </div>
-
-<!-- Summary Sheet Modal (removed - opens Google Sheet directly) -->
 
 <!-- Code 관리 Modal -->
 <div class="docs-modal-overlay" id="schemeManagerOverlay" onclick="if(event.target===this)closeSchemeManager()">
@@ -1792,190 +1775,6 @@ window.addEventListener('DOMContentLoaded', () => {
   if (aH && aB) makeDraggable(aH, aB);
 });
 
-// ── Analysis Modal ──
-const CHART_COLORS = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
-
-async function openAnalysisModal(mode) {
-  const dil = document.getElementById('selDilemma').value;
-  const dm = DILEMMA_MAP[dil];
-  const dilLabel = 'Dilemma-0' + dil;
-  const groupLabel = mode === 'orientation' ? 'Scheme' : 'Scheme';
-  const groupIdx = mode === 'orientation' ? dm.orientation : dm.scheme;
-
-  // 모달을 먼저 열고 로딩 표시
-  document.getElementById('analysisTitle').textContent = groupLabel + '별 분석';
-  document.getElementById('analysisSubtitle').textContent = dilLabel + ' 기준';
-  const body = document.getElementById('analysisBody');
-  body.innerHTML = '<div class="analysis-loading"><div class="dynamic-spinner"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div></div><div class="loading-text">데이터 분석 중...</div><div class="loading-bar-track"><div class="loading-bar-fill"></div></div></div>';
-  document.getElementById('analysisOverlay').classList.add('show');
-  document.body.style.overflow = 'hidden';
-
-  // 시트에서 최신 데이터 다시 로드
-  try {
-    if (GAS_URL && GAS_URL !== 'YOUR_GAS_WEB_APP_URL_HERE') {
-      const resp = await fetch(GAS_URL);
-      const json = await resp.json();
-      if (json.status === 'ok') {
-        allData = [];
-        json.data.forEach(r => {
-          if (r.B && r.B.trim() === 'Ready') return;
-          const rawArr = COL_LETTERS.split('').map(c => normalizeGASValue(r[c]));
-          allData.push({ rowNum: r.rowNum, raw: rawArr, A: normalizeGASValue(r.A), B: normalizeGASValue(r.B), C: normalizeGASValue(r.C), D: normalizeGASValue(r.D), E: normalizeGASValue(r.E) });
-        });
-      }
-    }
-  } catch(e) {
-    console.error('분석용 데이터 로드 실패:', e);
-  }
-
-  await new Promise(r => setTimeout(r, 300)); // UI 업데이트 대기
-
-  // 그룹핑 — (미입력) 제외
-  const groups = {};
-  allData.forEach(r => {
-    const key = getCellVal(r, groupIdx);
-    if (!key) return; // 미입력 제외
-    if (!groups[key]) groups[key] = { n2: [], p: [], age: [], count: 0 };
-    groups[key].count++;
-    const n2 = parseFloat(r.C); if (!isNaN(n2)) groups[key].n2.push(n2);
-    const p = parseFloat(r.D);  if (!isNaN(p))  groups[key].p.push(p);
-    const a = parseFloat(r.E);  if (!isNaN(a))  groups[key].age.push(a);
-  });
-
-  const labels = Object.keys(groups).sort();
-  const dilNum = parseInt(dil);
-  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
-  const median = arr => {
-    if (!arr.length) return 0;
-    const s = arr.slice().sort((a,b)=>a-b);
-    const m = Math.floor(s.length/2);
-    return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
-  };
-  const q1 = arr => { const s = arr.slice().sort((a,b)=>a-b); return median(s.slice(0, Math.floor(s.length/2))); };
-  const q3 = arr => { const s = arr.slice().sort((a,b)=>a-b); return median(s.slice(Math.ceil(s.length/2))); };
-
-  function boxStats(arr) {
-    if (!arr.length) return null;
-    const s = arr.slice().sort((a,b)=>a-b);
-    return { min:s[0], q1:q1(s), med:median(s), q3:q3(s), max:s[s.length-1], avg:avg(s), n:s.length };
-  }
-
-  body.innerHTML = '';
-
-  if (labels.length === 0) {
-    body.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">분석할 데이터가 없습니다.</div>';
-    return;
-  }
-
-  const dpr = window.devicePixelRatio || 1;
-  const wrap = document.createElement('div');
-  wrap.className = 'analysis-charts';
-
-  // ── 1) 빈도 분석 (Frequency) ──
-  const freqSec = document.createElement('div');
-  freqSec.className = 'analysis-chart-section';
-  const freqTitle = document.createElement('div');
-  freqTitle.className = 'analysis-chart-title';
-  freqTitle.textContent = groupLabel + '별 빈도 (Frequency)';
-  const freqWrap = document.createElement('div');
-  freqWrap.className = 'analysis-chart-wrap';
-  const freqCanvas = document.createElement('canvas');
-  freqCanvas.style.width = '100%';
-  freqCanvas.style.height = '280px';
-  freqWrap.appendChild(freqCanvas);
-  const freqLegend = buildSchemeLegend(labels, dilNum);
-  freqWrap.appendChild(freqLegend);
-  freqSec.append(freqTitle, freqWrap);
-  wrap.appendChild(freqSec);
-
-  // ── 2) Box Plots ──
-  const bpN2  = labels.map(k => ({ label:k, ...boxStats(groups[k].n2) }));
-  const bpP   = labels.map(k => ({ label:k, ...boxStats(groups[k].p) }));
-  const bpAge = labels.map(k => ({ label:k, ...boxStats(groups[k].age) }));
-
-  const chartDefs = [
-    { title: 'N2 Score (by ' + groupLabel + ')', data: bpN2,  color: '#3b82f6' },
-    { title: 'P% Score (by ' + groupLabel + ')', data: bpP,   color: '#f59e0b' },
-    { title: 'Age (by ' + groupLabel + ')',       data: bpAge, color: '#10b981' },
-  ];
-
-  const pendingCanvases = [];
-  chartDefs.forEach(cd => {
-    const sec = document.createElement('div');
-    sec.className = 'analysis-chart-section';
-    const t = document.createElement('div');
-    t.className = 'analysis-chart-title';
-    t.textContent = cd.title;
-    const cw = document.createElement('div');
-    cw.className = 'analysis-chart-wrap';
-    const canvas = document.createElement('canvas');
-    canvas.style.width = '100%';
-    canvas.style.height = '300px';
-    cw.appendChild(canvas);
-    // Legend below each chart
-    cw.appendChild(buildSchemeLegend(labels, dilNum));
-    sec.append(t, cw);
-    wrap.appendChild(sec);
-    pendingCanvases.push({ canvas, data: cd.data, color: cd.color });
-  });
-
-  // ── 3) Summary table ──
-  const sumSec = document.createElement('div');
-  sumSec.className = 'analysis-summary';
-  let tbl = '<table><thead><tr><th>No.</th><th>Code</th><th>설명</th><th>빈도</th><th>N2 평균</th><th>N2 중앙값</th><th>P% 평균</th><th>P% 중앙값</th><th>Age 평균</th><th>Age 중앙값</th></tr></thead><tbody>';
-  let totalN=0, sumN2=0, sumP=0, sumAge=0;
-  labels.forEach((k, idx) => {
-    const sn2 = boxStats(groups[k].n2);
-    const sp  = boxStats(groups[k].p);
-    const sa  = boxStats(groups[k].age);
-    const cn = groups[k].count;
-    totalN += cn;
-    if(sn2) sumN2 += sn2.avg * sn2.n;
-    if(sp)  sumP  += sp.avg * sp.n;
-    if(sa)  sumAge+= sa.avg * sa.n;
-    const codeDesc = getCodeDesc(k, dilNum);
-    
-    tbl += '<tr><td style="font-weight:600;color:#1e293b">' + (idx+1) + '</td><td style="font-weight:600;color:#1e293b">' + escHtml(k) + '</td><td style="color:#64748b;font-size:11px">' + escHtml(codeDesc) + '</td><td>' + cn + '</td>';
-    tbl += '<td>' + (sn2?sn2.avg.toFixed(2):'-') + '</td><td>' + (sn2?sn2.med.toFixed(2):'-') + '</td>';
-    tbl += '<td>' + (sp?sp.avg.toFixed(2):'-') + '</td><td>' + (sp?sp.med.toFixed(2):'-') + '</td>';
-    tbl += '<td>' + (sa?sa.avg.toFixed(1):'-') + '</td><td>' + (sa?sa.med.toFixed(1):'-') + '</td></tr>';
-  });
-  const numN2 = allData.filter(r=>!isNaN(parseFloat(r.C))).length;
-  const numP  = allData.filter(r=>!isNaN(parseFloat(r.D))).length;
-  const numAge= allData.filter(r=>!isNaN(parseFloat(r.E))).length;
-  tbl += '<tr style="background:#f1f5f9;font-weight:600"><td colspan="3">전체</td><td>'+totalN+'</td>';
-  tbl += '<td>'+(numN2?(sumN2/numN2).toFixed(2):'-')+'</td><td>-</td>';
-  tbl += '<td>'+(numP?(sumP/numP).toFixed(2):'-')+'</td><td>-</td>';
-  tbl += '<td>'+(numAge?(sumAge/numAge).toFixed(1):'-')+'</td><td>-</td></tr>';
-  tbl += '</tbody></table>';
-  sumSec.innerHTML = tbl;
-
-  wrap.appendChild(sumSec);
-  body.appendChild(wrap);
-  body.scrollTop = 0;
-
-  // DOM에 삽입된 후 실제 너비로 Canvas 그리기
-  requestAnimationFrame(() => {
-    // Frequency chart
-    const fw = freqCanvas.parentElement.clientWidth - 32;
-    freqCanvas.width = fw * dpr;
-    freqCanvas.height = 280 * dpr;
-    freqCanvas.style.width = fw + 'px';
-    drawFreqChart(freqCanvas, labels.map(k => ({ label: k, count: groups[k].count })), dpr);
-
-    // Box plots
-    pendingCanvases.forEach(pc => {
-      const pw = pc.canvas.parentElement.clientWidth - 32;
-      pc.canvas.width = pw * dpr;
-      pc.canvas.height = 300 * dpr;
-      pc.canvas.style.width = pw + 'px';
-      drawBoxPlot(pc.canvas, pc.data, pc.color, dpr);
-    });
-  });
-
-  // 카드 목록도 갱신
-  renderCards();
-}
 
 function closeAnalysis() {
   document.getElementById('analysisOverlay').classList.remove('show');
@@ -2111,6 +1910,7 @@ async function openCombinedAnalysis() {
   // ═══════════════════════════════════════
   const divider = document.createElement('div');
   divider.style.cssText = 'height:2px;background:#e2e8f0;margin:20px 0 12px;';
+  divider.className = 'analysis-print-page-break';
   masterWrap.appendChild(divider);
 
   const sectionTitle2 = document.createElement('div');
@@ -2239,17 +2039,19 @@ async function openCombinedAnalysis() {
     if (schemeLabels.length > 0) {
       // ── N2 Scheme Combination 섹션 ──
       const n2combDiv = buildCombinationSection('N2', schemeLabels, groups, 'n2', dilNum, pendingScheme);
+      n2combDiv.classList.add('analysis-print-page-break');
       masterWrap.appendChild(n2combDiv);
 
       // ── P% Scheme Combination 섹션 ──
       const pCombDiv = buildCombinationSection('P%', schemeLabels, groups, 'p', dilNum, pendingScheme);
+      pCombDiv.classList.add('analysis-print-page-break');
       masterWrap.appendChild(pCombDiv);
     }
 
     // Age Box Plot (전체 코드, Scheme→IRD 순)
     const bpAge = labels.map(k => ({ label:k, ...boxStats(groups[k].age) }));
     const ageSec = document.createElement('div');
-    ageSec.className = 'analysis-chart-section';
+    ageSec.className = 'analysis-chart-section analysis-print-page-break';
     const ageTitle = document.createElement('div');
     ageTitle.className = 'analysis-chart-title';
     ageTitle.textContent = 'Age (by ' + groupLabel + ')';
@@ -2265,7 +2067,7 @@ async function openCombinedAnalysis() {
 
     // Summary table
     const sumSec = document.createElement('div');
-    sumSec.className = 'analysis-summary';
+    sumSec.className = 'analysis-summary analysis-print-page-break';
     let tbl = '<table><thead><tr><th>No.</th><th>Code</th><th>설명</th><th>빈도</th><th>N2 평균</th><th>N2 중앙값</th><th>P% 평균</th><th>P% 중앙값</th><th>Age 평균</th><th>Age 중앙값</th></tr></thead><tbody>';
     let totalN=0, sumN2t=0, sumPt=0, sumAget=0;
     labels.forEach((k, idx) => {
@@ -2325,247 +2127,6 @@ async function openCombinedAnalysis() {
   });
 
   renderCards();
-}
-
-// ── N2/P% Scatter Plot Modal (legacy, kept for reference) ──
-async function openScatterModal() {
-  const dil = document.getElementById('selDilemma').value;
-  const dilLabel = 'Dilemma-0' + dil;
-
-  document.getElementById('analysisTitle').textContent = 'N2 / P% 분석';
-  document.getElementById('analysisSubtitle').textContent = '';
-  const body = document.getElementById('analysisBody');
-  body.innerHTML = '<div class="analysis-loading"><div class="dynamic-spinner"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div></div><div class="loading-text">데이터 분석 중...</div><div class="loading-bar-track"><div class="loading-bar-fill"></div></div></div>';
-  document.getElementById('analysisOverlay').classList.add('show');
-  document.body.style.overflow = 'hidden';
-
-  // 최신 데이터 로드
-  try {
-    if (GAS_URL && GAS_URL !== 'YOUR_GAS_WEB_APP_URL_HERE') {
-      const resp = await fetch(GAS_URL);
-      const json = await resp.json();
-      if (json.status === 'ok') {
-        allData = [];
-        json.data.forEach(r => {
-          if (r.B && r.B.trim() === 'Ready') return;
-          const rawArr = COL_LETTERS.split('').map(c => normalizeGASValue(r[c]));
-          allData.push({ rowNum: r.rowNum, raw: rawArr, A: normalizeGASValue(r.A), B: normalizeGASValue(r.B), C: normalizeGASValue(r.C), D: normalizeGASValue(r.D), E: normalizeGASValue(r.E) });
-        });
-      }
-    }
-  } catch(e) { console.error('분석용 데이터 로드 실패:', e); }
-
-  await new Promise(r => setTimeout(r, 300));
-
-  // 데이터 수집
-  const n2Vals = [], pVals = [], scatterPairs = [], resIDs = [];
-  allData.forEach(r => {
-    const n2 = parseFloat(r.C);
-    const p = parseFloat(r.D);
-    if (!isNaN(n2)) n2Vals.push(n2);
-    if (!isNaN(p)) pVals.push(p);
-    if (!isNaN(n2) && !isNaN(p)) {
-      scatterPairs.push({ n2, p });
-      resIDs.push(r.B || '');
-    }
-  });
-
-  body.innerHTML = '';
-
-  if (n2Vals.length === 0 && pVals.length === 0) {
-    body.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">분석할 데이터가 없습니다.</div>';
-    return;
-  }
-
-  const dpr = window.devicePixelRatio || 1;
-  const wrap = document.createElement('div');
-  wrap.className = 'analysis-charts';
-
-  // ── 1) N2 빈도 히스토그램 ──
-  const n2Sec = document.createElement('div');
-  n2Sec.className = 'analysis-chart-section';
-  const n2Title = document.createElement('div');
-  n2Title.className = 'analysis-chart-title';
-  n2Title.textContent = 'N2 Score 빈도 분포 (Histogram)';
-  const n2Wrap = document.createElement('div');
-  n2Wrap.className = 'analysis-chart-wrap';
-  const n2Canvas = document.createElement('canvas');
-  n2Canvas.style.width = '100%';
-  n2Canvas.style.height = '300px';
-  n2Wrap.appendChild(n2Canvas);
-  n2Sec.append(n2Title, n2Wrap);
-  wrap.appendChild(n2Sec);
-
-  // ── 3) P% 빈도 히스토그램 ──
-  const pSec = document.createElement('div');
-  pSec.className = 'analysis-chart-section';
-  const pTitle = document.createElement('div');
-  pTitle.className = 'analysis-chart-title';
-  pTitle.textContent = 'P% Score 빈도 분포 (Histogram)';
-  const pWrap = document.createElement('div');
-  pWrap.className = 'analysis-chart-wrap';
-  const pCanvas = document.createElement('canvas');
-  pCanvas.style.width = '100%';
-  pCanvas.style.height = '300px';
-  pWrap.appendChild(pCanvas);
-  pSec.append(pTitle, pWrap);
-  wrap.appendChild(pSec);
-
-  // ── 4) Summary table ──
-  const sumSec = document.createElement('div');
-  sumSec.className = 'analysis-summary';
-  const stats = (arr) => {
-    if (!arr.length) return { n:0, avg:0, med:0, min:0, max:0, sd:0 };
-    const s = arr.slice().sort((a,b)=>a-b);
-    const n = s.length;
-    const mean = s.reduce((a,b)=>a+b,0)/n;
-    const m = Math.floor(n/2);
-    const med = n%2 ? s[m] : (s[m-1]+s[m])/2;
-    const sd = Math.sqrt(s.reduce((sum,v)=>sum+(v-mean)**2,0)/n);
-    return { n, avg:mean, med, min:s[0], max:s[n-1], sd };
-  };
-  const sN2 = stats(n2Vals), sP = stats(pVals);
-
-  // 상관계수 계산
-  let corr = 0;
-  if (scatterPairs.length > 1) {
-    const mN2 = scatterPairs.reduce((s,d)=>s+d.n2,0)/scatterPairs.length;
-    const mP = scatterPairs.reduce((s,d)=>s+d.p,0)/scatterPairs.length;
-    let num=0, dN=0, dP=0;
-    scatterPairs.forEach(d => {
-      num += (d.n2-mN2)*(d.p-mP);
-      dN += (d.n2-mN2)**2;
-      dP += (d.p-mP)**2;
-    });
-    corr = (dN && dP) ? num/Math.sqrt(dN*dP) : 0;
-  }
-
-  sumSec.innerHTML = '<table><thead><tr><th>지표</th><th>N</th><th>평균</th><th>중앙값</th><th>표준편차</th><th>최솟값</th><th>최댓값</th></tr></thead><tbody>' +
-    '<tr><td style="font-weight:600;color:#1e293b">N2 Score</td><td>'+sN2.n+'</td><td>'+sN2.avg.toFixed(2)+'</td><td>'+sN2.med.toFixed(2)+'</td><td>'+sN2.sd.toFixed(2)+'</td><td>'+sN2.min.toFixed(2)+'</td><td>'+sN2.max.toFixed(2)+'</td></tr>' +
-    '<tr><td style="font-weight:600;color:#1e293b">P% Score</td><td>'+sP.n+'</td><td>'+sP.avg.toFixed(2)+'</td><td>'+sP.med.toFixed(2)+'</td><td>'+sP.sd.toFixed(2)+'</td><td>'+sP.min.toFixed(2)+'</td><td>'+sP.max.toFixed(2)+'</td></tr>' +
-    '<tr style="background:#f1f5f9;font-weight:600"><td>상관계수 (r)</td><td colspan="6" style="text-align:center;font-size:15px;color:#3b82f6">'+corr.toFixed(4)+'</td></tr>' +
-    '</tbody></table>';
-  wrap.appendChild(sumSec);
-
-  body.appendChild(wrap);
-  body.scrollTop = 0;
-
-  // Canvas 그리기
-  requestAnimationFrame(() => {
-    // N2 histogram
-    const nw = n2Canvas.parentElement.clientWidth - 32;
-    n2Canvas.width = nw * dpr;
-    n2Canvas.height = 300 * dpr;
-    n2Canvas.style.width = nw + 'px';
-    drawHistogram(n2Canvas, n2Vals, 'N2 Score', '#3b82f6', dpr);
-
-    // P% histogram
-    const pw = pCanvas.parentElement.clientWidth - 32;
-    pCanvas.width = pw * dpr;
-    pCanvas.height = 300 * dpr;
-    pCanvas.style.width = pw + 'px';
-    drawHistogram(pCanvas, pVals, 'P%', '#f59e0b', dpr);
-  });
-
-  renderCards();
-}
-
-// ── Scatter Plot 그리기 ──
-function drawScatterPlot(canvas, pairs, resIDs, corr, dpr) {
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  const W = canvas.width / dpr, H = canvas.height / dpr;
-  const padL = 65, padR = 30, padT = 30, padB = 55;
-  const chartW = W - padL - padR;
-  const chartH = H - padT - padB;
-
-  ctx.clearRect(0, 0, W, H);
-  if (!pairs.length) return;
-
-  const n2Min = Math.floor(Math.min(...pairs.map(d=>d.n2)) - 0.5);
-  const n2Max = Math.ceil(Math.max(...pairs.map(d=>d.n2)) + 0.5);
-  const pMin = Math.floor(Math.min(...pairs.map(d=>d.p)) - 0.5);
-  const pMax = Math.ceil(Math.max(...pairs.map(d=>d.p)) + 0.5);
-
-  const xRange = n2Max - n2Min || 1;
-  const yRange = pMax - pMin || 1;
-  const toX = v => padL + ((v - n2Min) / xRange) * chartW;
-  const toY = v => padT + chartH - ((v - pMin) / yRange) * chartH;
-
-  // Grid
-  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 0.5;
-  const xTicks = 8, yTicks = 6;
-  for (let i = 0; i <= xTicks; i++) {
-    const v = n2Min + (xRange / xTicks) * i;
-    const x = toX(v);
-    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + chartH); ctx.stroke();
-    ctx.fillStyle = '#94a3b8'; ctx.font = '11px Inter, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(v.toFixed(1), x, padT + chartH + 18);
-  }
-  for (let i = 0; i <= yTicks; i++) {
-    const v = pMin + (yRange / yTicks) * i;
-    const y = toY(v);
-    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + chartW, y); ctx.stroke();
-    ctx.fillStyle = '#94a3b8'; ctx.font = '11px Inter, sans-serif'; ctx.textAlign = 'right';
-    ctx.fillText(v.toFixed(1), padL - 8, y + 4);
-  }
-
-  // Axes
-  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + chartH); ctx.lineTo(padL + chartW, padT + chartH); ctx.stroke();
-
-  // Axis labels
-  ctx.fillStyle = '#334155'; ctx.font = 'bold 12px Inter, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('N2 Score', padL + chartW / 2, H - 8);
-  ctx.save();
-  ctx.translate(16, padT + chartH / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillText('P% Score', 0, 0);
-  ctx.restore();
-
-  // Trend line (linear regression)
-  if (pairs.length > 1) {
-    const mN2 = pairs.reduce((s,d)=>s+d.n2,0)/pairs.length;
-    const mP = pairs.reduce((s,d)=>s+d.p,0)/pairs.length;
-    let num=0, den=0;
-    pairs.forEach(d => { num+=(d.n2-mN2)*(d.p-mP); den+=(d.n2-mN2)**2; });
-    if (den) {
-      const slope = num/den;
-      const intercept = mP - slope*mN2;
-      ctx.strokeStyle = 'rgba(239,68,68,0.4)'; ctx.lineWidth = 2;
-      ctx.setLineDash([6,4]);
-      ctx.beginPath();
-      ctx.moveTo(toX(n2Min), toY(slope*n2Min+intercept));
-      ctx.lineTo(toX(n2Max), toY(slope*n2Max+intercept));
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-  }
-
-  // Data points
-  pairs.forEach((d, i) => {
-    const x = toX(d.n2), y = toY(d.p);
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(59,130,246,0.7)';
-    ctx.fill();
-    ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 1.2;
-    ctx.stroke();
-  });
-
-  // Legend
-  ctx.font = '11px Inter, sans-serif'; ctx.textAlign = 'left';
-  ctx.fillStyle = 'rgba(59,130,246,0.7)';
-  ctx.beginPath(); ctx.arc(padL + 10, 14, 4, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#475569';
-  ctx.fillText('응답자 (n=' + pairs.length + ')', padL + 20, 17);
-
-  ctx.strokeStyle = 'rgba(239,68,68,0.4)'; ctx.lineWidth = 2; ctx.setLineDash([6,4]);
-  ctx.beginPath(); ctx.moveTo(padL + 140, 14); ctx.lineTo(padL + 164, 14); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = '#475569';
-  ctx.fillText('추세선 (r=' + corr.toFixed(3) + ')', padL + 170, 17);
 }
 
 // ── Histogram 그리기 ──
@@ -2660,7 +2221,7 @@ function drawHistogram(canvas, values, label, color, dpr) {
 function printAnalysis() {
   const style = document.createElement('style');
   style.id = 'analysis-print-style';
-  style.textContent = '@media print { @page { size:letter landscape; margin:12mm; } }';
+  style.textContent = '@media print { @page { size:letter portrait; margin:10mm; } }';
   document.head.appendChild(style);
 
   document.body.classList.add('printing-analysis');
@@ -3141,7 +2702,7 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
     // ── 상관관계 분석 (Score vs Group) ──
     if (combGroups.length >= 2) {
       const corrTitle = document.createElement('div');
-      corrTitle.className = 'analysis-chart-title';
+      corrTitle.className = 'analysis-chart-title analysis-print-page-break';
       corrTitle.style.marginTop = '16px';
       corrTitle.textContent = scoreLabel + ' Score × Group 상관관계';
       chartArea.appendChild(corrTitle);
@@ -3860,16 +3421,113 @@ function toggleEthicsScores() {
   });
 }
 
-// ── 카드 출력 ──
+// ── 카드 출력 (테이블 리포트) ──
 function printCards() {
+  const DILEMMA_SHORT_NAMES = {
+    '1': '프라이버시 보호',
+    '2': '데이터 관리',
+    '3': '공공성',
+    '4': '침해금지',
+  };
+
+  const dil = document.getElementById('selDilemma').value;
+  const dm = DILEMMA_MAP[dil];
+  const dilShort = DILEMMA_SHORT_NAMES[dil] || '';
+  const data = getFilteredData();
+
+  // 현재 화면에서 editable-field의 실시간 값을 수집 (카드에서 수정 중인 내용 반영)
+  const liveEdits = {};
+  document.querySelectorAll('.editable-field').forEach(inp => {
+    const key = inp.dataset.rownum + '_' + inp.dataset.field;
+    liveEdits[key] = inp.value;
+  });
+
+  // 테이블 HTML 생성
+  const title = 'Assessment Result Report [Dilemma-0' + dil + '_' + dilShort + ']';
+  let html = '<div class="print-report-overlay">';
+  html += '<div class="print-report-title">' + escHtml(title) + '</div>';
+  html += '<table class="print-report-table">';
+  html += '<colgroup>'
+    + '<col class="col-resid"><col class="col-assess"><col class="col-age">'
+    + '<col class="col-n2"><col class="col-p"><col class="col-resp1">'
+    + '<col class="col-resp2"><col class="col-analysisA"><col class="col-analysisB">'
+    + '</colgroup>';
+  html += '<thead><tr>'
+    + '<th>ResID</th><th>Assement</th><th>Age</th><th>N2</th><th>P%</th>'
+    + '<th>Response-1</th><th>Response-2</th><th>Analysis-A</th><th>Analysis-B</th>'
+    + '</tr></thead><tbody>';
+
+  data.forEach(row => {
+    const resid = escHtml(row.B || '');
+    const orientationCode = getCellVal(row, dm.orientation) || '';
+    // 실시간 편집값 우선 적용 (드롭다운 변경 반영)
+    const liveOri = liveEdits[row.rowNum + '_orientation'];
+    const oriCode = liveOri !== undefined ? liveOri : orientationCode;
+    // Code 탭의 설명 텍스트 사용 (화면 드롭다운 아래 표시되는 텍스트)
+    const dilNum = parseInt(dil);
+    const orientation = escHtml(getCodeDesc(oriCode, dilNum) || oriCode);
+    const age = escHtml(row.E || '');
+    const n2 = escHtml(fmtScore(row.C));
+    const p = escHtml(fmtScore(row.D));
+    const r1Raw = getCellVal(row, dm.r1);
+    const r1FirstChar = r1Raw.charAt(0);
+    const r1 = (r1FirstChar === '①' || r1FirstChar === '②') ? escHtml(r1FirstChar) : escHtml(r1Raw);
+
+    const r2 = escHtml(getCellVal(row, dm.r2));
+
+    // Analysis-A, B: 실시간 편집값 우선 적용
+    const liveKw = liveEdits[row.rowNum + '_keyword'];
+    const liveSc = liveEdits[row.rowNum + '_scheme'];
+    const analysisA = escHtml(liveKw !== undefined ? liveKw : getCellVal(row, dm.keyword));
+    const analysisB = escHtml(liveSc !== undefined ? liveSc : getCellVal(row, dm.scheme));
+
+    html += '<tr>'
+      + '<td class="center">' + resid + '</td>'
+      + '<td class="center">' + orientation + '</td>'
+      + '<td class="center">' + age + '</td>'
+      + '<td class="center">' + n2 + '</td>'
+      + '<td class="center">' + p + '</td>'
+      + '<td class="center">' + r1 + '</td>'
+      + '<td>' + r2 + '</td>'
+      + '<td>' + analysisA + '</td>'
+      + '<td>' + analysisB + '</td>'
+      + '</tr>';
+  });
+
+  html += '</tbody>';
+
+  // 바닥글 (tfoot — 매 인쇄 페이지마다 반복 표시)
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const dateStr = now.getFullYear() + '. ' + pad(now.getMonth()+1) + '. ' + pad(now.getDate())
+    + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+  html += '<tfoot><tr><td colspan="9" style="border:none;padding:6px 0 0;font-size:9px;color:#555;">'
+    + '<span style="float:right;">' + escHtml(dateStr) + '</span>'
+    + '</td></tr></tfoot>';
+
+  html += '</table></div>';
+
+  // 오버레이 삽입
+  let overlay = document.getElementById('printReportOverlay');
+  if (overlay) overlay.remove();
+  overlay = document.createElement('div');
+  overlay.id = 'printReportOverlay';
+  overlay.style.display = 'none';
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+
+  // 인쇄 스타일 삽입
   const style = document.createElement('style');
   style.id = 'cards-print-style';
-  style.textContent = '@media print { @page { size:letter portrait; margin:12mm; } }';
+  style.textContent = '@media print { @page { size:letter landscape; margin:10mm 10mm 14mm 10mm; } }';
   document.head.appendChild(style);
 
+  // 인쇄 실행
+  overlay.style.display = 'block';
   document.body.classList.add('printing-cards');
   window.print();
   document.body.classList.remove('printing-cards');
+  overlay.remove();
   style.remove();
 }
 
