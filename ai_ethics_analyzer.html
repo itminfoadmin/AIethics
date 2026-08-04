@@ -2730,6 +2730,145 @@ function buildSchemeLegend(labels, dilemmaNum) {
   return legendDiv;
 }
 
+// ── Score vs Group 상관관계 Scatter Plot ──
+function _drawCorrScatter(canvas, combGroups, corrR, scoreLabel, baseColor, dpr) {
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = canvas.width / dpr, H = canvas.height / dpr;
+  const padL = 65, padR = 30, padT = 30, padB = 55;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  ctx.clearRect(0, 0, W, H);
+
+  const colors = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+  const allPairs = [];
+  combGroups.forEach((cg, gi) => {
+    cg.values.forEach(v => allPairs.push({ g: gi + 1, score: v, ci: gi }));
+  });
+  if (!allPairs.length) return;
+
+  const gMin = 0.5, gMax = combGroups.length + 0.5;
+  const sArr = allPairs.map(d => d.score);
+  const sMin = Math.min(...sArr), sMax = Math.max(...sArr);
+  const sRange = sMax - sMin || 1;
+  const sPad = sRange * 0.08;
+  const yMin = sMin - sPad, yMax = sMax + sPad;
+  const yRange = yMax - yMin;
+
+  const toX = v => padL + ((v - gMin) / (gMax - gMin)) * chartW;
+  const toY = v => padT + chartH - ((v - yMin) / yRange) * chartH;
+
+  // Grid
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 0.5;
+  for (let i = 1; i <= combGroups.length; i++) {
+    const x = toX(i);
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + chartH); ctx.stroke();
+    ctx.fillStyle = '#475569'; ctx.font = 'bold 11px Inter, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(combGroups[i-1].shortLabel, x, padT + chartH + 18);
+    ctx.fillStyle = '#94a3b8'; ctx.font = '9px Inter, sans-serif';
+    ctx.fillText('(' + combGroups[i-1].label + ')', x, padT + chartH + 32);
+  }
+  const yTicks = 6;
+  for (let i = 0; i <= yTicks; i++) {
+    const v = yMin + (yRange / yTicks) * i;
+    const y = toY(v);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + chartW, y); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '11px Inter, sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(v.toFixed(1), padL - 8, y + 4);
+  }
+
+  // Axes
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + chartH); ctx.lineTo(padL + chartW, padT + chartH); ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle = '#334155'; ctx.font = 'bold 12px Inter, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Group', padL + chartW / 2, H - 4);
+  ctx.save();
+  ctx.translate(14, padT + chartH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(scoreLabel + ' Score', 0, 0);
+  ctx.restore();
+
+  // Trend line
+  if (allPairs.length > 1) {
+    const mG = allPairs.reduce((s,d) => s + d.g, 0) / allPairs.length;
+    const mS = allPairs.reduce((s,d) => s + d.score, 0) / allPairs.length;
+    let num = 0, den = 0;
+    allPairs.forEach(d => { num += (d.g - mG) * (d.score - mS); den += (d.g - mG) ** 2; });
+    if (den) {
+      const slope = num / den;
+      const intercept = mS - slope * mG;
+      ctx.strokeStyle = 'rgba(239,68,68,0.5)'; ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(toX(gMin), toY(slope * gMin + intercept));
+      ctx.lineTo(toX(gMax), toY(slope * gMax + intercept));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // Group means connected
+  ctx.strokeStyle = baseColor + '88'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([3, 3]);
+  combGroups.forEach((cg, gi) => {
+    if (!cg.values.length) return;
+    const gMean = cg.values.reduce((a,b)=>a+b,0) / cg.values.length;
+    const x = toX(gi + 1), y = toY(gMean);
+    if (gi === 0) { ctx.beginPath(); ctx.moveTo(x, y); }
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Data points with jitter
+  allPairs.forEach(d => {
+    const jitter = (Math.random() - 0.5) * 0.3;
+    const x = toX(d.g + jitter), y = toY(d.score);
+    ctx.beginPath();
+    ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = colors[d.ci % colors.length] + 'aa';
+    ctx.fill();
+    ctx.strokeStyle = colors[d.ci % colors.length];
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // Group means as diamonds
+  combGroups.forEach((cg, gi) => {
+    if (!cg.values.length) return;
+    const gMean = cg.values.reduce((a,b)=>a+b,0) / cg.values.length;
+    const x = toX(gi + 1), y = toY(gMean);
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.moveTo(x, y - 6); ctx.lineTo(x + 5, y); ctx.lineTo(x, y + 6); ctx.lineTo(x - 5, y); ctx.closePath();
+    ctx.fill();
+  });
+
+  // Legend
+  ctx.font = '10px Inter, sans-serif'; ctx.textAlign = 'left';
+  let lx = padL + 4;
+  // Points
+  ctx.fillStyle = baseColor + 'aa';
+  ctx.beginPath(); ctx.arc(lx + 4, 14, 3.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#475569';
+  ctx.fillText('개별 데이터 (n=' + allPairs.length + ')', lx + 12, 17);
+  lx += 130;
+  // Mean diamond
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath(); ctx.moveTo(lx, 10); ctx.lineTo(lx+4, 14); ctx.lineTo(lx, 18); ctx.lineTo(lx-4, 14); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#475569';
+  ctx.fillText('그룹 평균', lx + 8, 17);
+  lx += 80;
+  // Trend line
+  ctx.strokeStyle = 'rgba(239,68,68,0.5)'; ctx.lineWidth = 2; ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.moveTo(lx, 14); ctx.lineTo(lx + 20, 14); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#475569';
+  ctx.fillText('추세선 (r=' + corrR.toFixed(3) + ')', lx + 24, 17);
+}
+
 // ── Scheme Combination 분석 UI 생성 (그룹 지정 방식) ──
 function _boxStats(arr) {
   if (!arr.length) return null;
@@ -2789,14 +2928,27 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
       if (g === i + 1) opt.selected = true;
       sel.appendChild(opt);
     }
+    // 제외 옵션 추가
+    const excludeOpt = document.createElement('option');
+    excludeOpt.value = 'exclude';
+    excludeOpt.textContent = '제외';
+    sel.appendChild(excludeOpt);
     // 색상 표시
     const colors = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
     const colorDot = document.createElement('span');
     colorDot.style.cssText = 'width:12px;height:12px;border-radius:3px;flex-shrink:0;background:' + colors[i % colors.length] + ';';
 
     sel.addEventListener('change', () => {
-      const gIdx = parseInt(sel.value) - 1;
-      colorDot.style.background = colors[gIdx % colors.length];
+      if (sel.value === 'exclude') {
+        colorDot.style.background = '#cbd5e1';
+        label.style.textDecoration = 'line-through';
+        label.style.color = '#94a3b8';
+      } else {
+        const gIdx = parseInt(sel.value) - 1;
+        colorDot.style.background = colors[gIdx % colors.length];
+        label.style.textDecoration = 'none';
+        label.style.color = '#1e293b';
+      }
     });
 
     row.append(colorDot, label, sel);
@@ -2843,9 +2995,10 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
   function renderCombCharts() {
     chartArea.innerHTML = '';
 
-    // 그룹 수집
+    // 그룹 수집 (제외 선택된 scheme은 건너뜀)
     const groupMap = {}; // groupNum → [scheme keys]
     selectors.forEach(s => {
+      if (s.value === 'exclude') return; // 제외된 scheme 건너뜀
       const gNum = parseInt(s.value);
       const scheme = s.dataset.scheme;
       if (!groupMap[gNum]) groupMap[gNum] = [];
@@ -2934,6 +3087,87 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
     tbl += '</tbody></table>';
     sumDiv.innerHTML = tbl;
     chartArea.appendChild(sumDiv);
+
+    // ── 상관관계 분석 (Score vs Group) ──
+    if (combGroups.length >= 2) {
+      const corrTitle = document.createElement('div');
+      corrTitle.className = 'analysis-chart-title';
+      corrTitle.style.marginTop = '16px';
+      corrTitle.textContent = scoreLabel + ' Score × Group 상관관계';
+      chartArea.appendChild(corrTitle);
+
+      // 각 데이터 포인트에 그룹 번호(1,2,3...)를 부여하고 Score와의 상관관계 계산
+      const corrPairs = []; // { groupNum, score }
+      combGroups.forEach((cg, gi) => {
+        cg.values.forEach(v => {
+          corrPairs.push({ groupNum: gi + 1, score: v });
+        });
+      });
+
+      // Pearson r 계산
+      let corrR = 0, etaSquared = 0;
+      if (corrPairs.length > 1) {
+        const mG = corrPairs.reduce((s,d) => s + d.groupNum, 0) / corrPairs.length;
+        const mS = corrPairs.reduce((s,d) => s + d.score, 0) / corrPairs.length;
+        let num = 0, dG = 0, dS = 0;
+        corrPairs.forEach(d => {
+          num += (d.groupNum - mG) * (d.score - mS);
+          dG += (d.groupNum - mG) ** 2;
+          dS += (d.score - mS) ** 2;
+        });
+        corrR = (dG && dS) ? num / Math.sqrt(dG * dS) : 0;
+
+        // Eta-squared (η²) 계산 — 그룹 간 분산 / 전체 분산
+        const grandMean = mS;
+        let ssBetween = 0, ssTotal = 0;
+        combGroups.forEach(cg => {
+          const gMean = cg.values.length ? cg.values.reduce((a,b)=>a+b,0)/cg.values.length : 0;
+          ssBetween += cg.values.length * (gMean - grandMean) ** 2;
+        });
+        corrPairs.forEach(d => { ssTotal += (d.score - grandMean) ** 2; });
+        etaSquared = ssTotal > 0 ? ssBetween / ssTotal : 0;
+      }
+
+      // 상관관계 결과 테이블
+      const corrDiv = document.createElement('div');
+      corrDiv.className = 'analysis-summary';
+      const rStrength = Math.abs(corrR) < 0.1 ? '거의 없음' : Math.abs(corrR) < 0.3 ? '약한' : Math.abs(corrR) < 0.5 ? '보통' : Math.abs(corrR) < 0.7 ? '강한' : '매우 강한';
+      const rDirection = corrR > 0 ? '양의' : corrR < 0 ? '음의' : '';
+      const etaStrength = etaSquared < 0.01 ? '거의 없음' : etaSquared < 0.06 ? '작음' : etaSquared < 0.14 ? '중간' : '큼';
+      corrDiv.innerHTML = '<table><thead><tr><th>측정</th><th>값</th><th>해석</th></tr></thead><tbody>' +
+        '<tr><td style="font-weight:600;color:#1e293b">Pearson r</td>' +
+        '<td style="font-size:16px;font-weight:700;color:' + (Math.abs(corrR) >= 0.3 ? '#3b82f6' : '#64748b') + '">' + corrR.toFixed(4) + '</td>' +
+        '<td style="color:#475569">' + rDirection + ' ' + rStrength + ' 상관</td></tr>' +
+        '<tr><td style="font-weight:600;color:#1e293b">r² (결정계수)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:#64748b">' + (corrR ** 2).toFixed(4) + '</td>' +
+        '<td style="color:#475569">그룹이 ' + scoreLabel + ' 분산의 ' + ((corrR ** 2) * 100).toFixed(1) + '% 설명</td></tr>' +
+        '<tr><td style="font-weight:600;color:#1e293b">η² (Eta-squared)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:' + (etaSquared >= 0.06 ? '#8b5cf6' : '#64748b') + '">' + etaSquared.toFixed(4) + '</td>' +
+        '<td style="color:#475569">효과 크기: ' + etaStrength + '</td></tr>' +
+        '<tr><td style="font-weight:600;color:#1e293b">N (총 데이터)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:#64748b">' + corrPairs.length + '</td>' +
+        '<td style="color:#475569">' + combGroups.length + '개 그룹</td></tr>' +
+        '</tbody></table>';
+      chartArea.appendChild(corrDiv);
+
+      // Scatter plot — Score vs Group
+      const corrChartWrap = document.createElement('div');
+      corrChartWrap.className = 'analysis-chart-wrap';
+      corrChartWrap.style.marginTop = '8px';
+      const corrCanvas = document.createElement('canvas');
+      corrCanvas.style.width = '100%'; corrCanvas.style.height = '280px';
+      corrChartWrap.appendChild(corrCanvas);
+      chartArea.appendChild(corrChartWrap);
+
+      // Draw correlation scatter after layout
+      setTimeout(() => {
+        let pwCorr = corrChartWrap.clientWidth - 32;
+        if (pwCorr <= 0) pwCorr = 600;
+        corrCanvas.width = pwCorr * dpr; corrCanvas.height = 280 * dpr;
+        corrCanvas.style.width = pwCorr + 'px'; corrCanvas.style.height = '280px';
+        _drawCorrScatter(corrCanvas, combGroups, corrR, scoreLabel, color, dpr);
+      }, 150);
+    }
 
     // Canvas 그리기 — 레이아웃 완료 후 실행
     setTimeout(() => {
