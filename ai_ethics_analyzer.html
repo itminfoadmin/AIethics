@@ -335,8 +335,8 @@ body {
   transition:all .15s;
 }
 .modal-edit-btn:hover { background:rgba(59,130,246,.9); }
-.modal-edit-btn.active { background:#f59e0b; border-color:#f59e0b; }
-.modal-edit-btn.active:hover { background:#d97706; border-color:#d97706; }
+.modal-edit-btn.active { background:#16a34a; border-color:#16a34a; }
+.modal-edit-btn.active:hover { background:#15803d; border-color:#15803d; }
 
 /* Modal editable fields */
 .modal-resp-text.editable {
@@ -351,12 +351,6 @@ body {
   transition:border-color .15s;
 }
 .modal-assessment-select:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
-.modal-save-bar {
-  display:none; padding:10px 24px; background:#fffbeb; border-top:2px solid #f59e0b;
-  text-align:center; flex-shrink:0;
-}
-.modal-save-bar.show { display:flex; align-items:center; justify-content:center; gap:12px; }
-.modal-save-bar .save-info { font-size:13px; color:#92400e; font-weight:600; }
 .modal-body { padding:0; flex:1; overflow-y:auto; border-radius:0 0 10px 10px; }
 
 .modal-dilemma { padding:16px 24px; border-bottom:1px solid #f1f5f9; }
@@ -750,11 +744,6 @@ body {
       </div>
     </div>
     <div class="modal-body" id="modalBody"></div>
-    <div class="modal-save-bar" id="modalSaveBar">
-      <span class="save-info">수정 모드 — 변경 후 저장 버튼을 눌러주세요</span>
-      <button class="btn btn-green" onclick="saveModalEdits()" style="padding:6px 20px;">저장</button>
-      <button class="btn btn-gray" onclick="cancelModalEdit()" style="padding:6px 14px;">취소</button>
-    </div>
   </div>
 </div>
 
@@ -1548,7 +1537,7 @@ function openModal(row) {
   modalEditMode = false;
   document.getElementById('modalEditBtn').textContent = '수정 ✎';
   document.getElementById('modalEditBtn').classList.remove('active');
-  document.getElementById('modalSaveBar').classList.remove('show');
+  document.getElementById('modalEditBtn').style.pointerEvents = '';
   document.getElementById('mNo').textContent = row.A || '-';
   document.getElementById('mResID').textContent = row.B || '-';
   document.getElementById('mN2').textContent = fmtScore(row.C);
@@ -1646,29 +1635,19 @@ function renderModalBody(row, editMode) {
 
 function toggleModalEdit() {
   if (!modalRow) return;
-  modalEditMode = !modalEditMode;
   const btn = document.getElementById('modalEditBtn');
-  const bar = document.getElementById('modalSaveBar');
 
   if (modalEditMode) {
-    btn.textContent = '수정 중 ✎';
-    btn.classList.add('active');
-    bar.classList.add('show');
-  } else {
-    btn.textContent = '수정 ✎';
-    btn.classList.remove('active');
-    bar.classList.remove('show');
+    // 현재 수정 모드 → 저장 실행
+    saveModalEdits();
+    return;
   }
 
-  renderModalBody(modalRow, modalEditMode);
-}
-
-function cancelModalEdit() {
-  modalEditMode = false;
-  document.getElementById('modalEditBtn').textContent = '수정 ✎';
-  document.getElementById('modalEditBtn').classList.remove('active');
-  document.getElementById('modalSaveBar').classList.remove('show');
-  renderModalBody(modalRow, false);
+  // 읽기 모드 → 수정 모드 전환
+  modalEditMode = true;
+  btn.textContent = '수정 저장 ✓';
+  btn.classList.add('active');
+  renderModalBody(modalRow, true);
 }
 
 async function saveModalEdits() {
@@ -1694,13 +1673,18 @@ async function saveModalEdits() {
 
   if (updates.length === 0) {
     showToast('변경사항이 없습니다.');
-    cancelModalEdit();
+    // 수정 모드 해제
+    modalEditMode = false;
+    document.getElementById('modalEditBtn').textContent = '수정 ✎';
+    document.getElementById('modalEditBtn').classList.remove('active');
+    renderModalBody(modalRow, false);
     return;
   }
 
-  // Show saving state
-  const saveBar = document.getElementById('modalSaveBar');
-  saveBar.innerHTML = '<span class="save-info">저장 중...</span>';
+  // Show saving state on button
+  const btn = document.getElementById('modalEditBtn');
+  btn.textContent = '저장 중...';
+  btn.style.pointerEvents = 'none';
 
   try {
     const resp = await fetch(GAS_URL, {
@@ -1724,10 +1708,9 @@ async function saveModalEdits() {
 
     // Exit edit mode and refresh modal
     modalEditMode = false;
-    document.getElementById('modalEditBtn').textContent = '수정 ✎';
-    document.getElementById('modalEditBtn').classList.remove('active');
-    saveBar.classList.remove('show');
-    saveBar.innerHTML = '<span class="save-info">수정 모드 — 변경 후 저장 버튼을 눌러주세요</span><button class="btn btn-green" onclick="saveModalEdits()" style="padding:6px 20px;">저장</button><button class="btn btn-gray" onclick="cancelModalEdit()" style="padding:6px 14px;">취소</button>';
+    btn.textContent = '수정 ✎';
+    btn.classList.remove('active');
+    btn.style.pointerEvents = '';
 
     // Re-render modal body with updated data
     renderModalBody(modalRow, false);
@@ -1737,7 +1720,9 @@ async function saveModalEdits() {
 
   } catch(err) {
     console.error('저장 실패:', err);
-    saveBar.innerHTML = '<span class="save-info" style="color:#dc2626;">저장 실패: ' + err.message + '</span><button class="btn btn-green" onclick="saveModalEdits()" style="padding:6px 20px;">재시도</button><button class="btn btn-gray" onclick="cancelModalEdit()" style="padding:6px 14px;">취소</button>';
+    showToast('저장 실패: ' + err.message, true);
+    btn.textContent = '수정 저장 ✓';
+    btn.style.pointerEvents = '';
   }
 }
 
@@ -1745,7 +1730,7 @@ function closeModal() {
   modalEditMode = false;
   document.getElementById('modalEditBtn').textContent = '수정 ✎';
   document.getElementById('modalEditBtn').classList.remove('active');
-  document.getElementById('modalSaveBar').classList.remove('show');
+  document.getElementById('modalEditBtn').style.pointerEvents = '';
   document.getElementById('modalOverlay').classList.remove('show');
   document.body.style.overflow = '';
   modalRow = null;
@@ -2869,6 +2854,71 @@ function _drawCorrScatter(canvas, combGroups, corrR, scoreLabel, baseColor, dpr)
   ctx.fillText('추세선 (r=' + corrR.toFixed(3) + ')', lx + 24, 17);
 }
 
+// ── 통계적 유의성 검정 헬퍼 함수 ──
+// Incomplete beta function (regularized) via continued fraction
+function _lnGamma(z) {
+  const c = [76.18009172947146,-86.50532032941677,24.01409824083091,
+    -1.231739572450155,0.001208650973866179,-0.000005395239384953];
+  let x = z, y = z;
+  let tmp = x + 5.5;
+  tmp -= (x + 0.5) * Math.log(tmp);
+  let ser = 1.000000000190015;
+  for (let j = 0; j < 6; j++) ser += c[j] / ++y;
+  return -tmp + Math.log(2.5066282746310005 * ser / x);
+}
+
+function _betacf(a, b, x) {
+  const MAXIT = 200, EPS = 3e-12, FPMIN = 1e-30;
+  const qab = a + b, qap = a + 1, qam = a - 1;
+  let c = 1, d = 1 - qab * x / qap;
+  if (Math.abs(d) < FPMIN) d = FPMIN;
+  d = 1 / d;
+  let h = d;
+  for (let m = 1; m <= MAXIT; m++) {
+    const m2 = 2 * m;
+    let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+    d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN; d = 1 / d;
+    c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+    h *= d * c;
+    aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+    d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN; d = 1 / d;
+    c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+    const del = d * c;
+    h *= del;
+    if (Math.abs(del - 1) < EPS) break;
+  }
+  return h;
+}
+
+function _betaIncomplete(a, b, x) {
+  if (x < 0 || x > 1) return 0;
+  if (x === 0 || x === 1) return x;
+  const bt = Math.exp(_lnGamma(a + b) - _lnGamma(a) - _lnGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+  if (x < (a + 1) / (a + b + 2)) return bt * _betacf(a, b, x) / a;
+  return 1 - bt * _betacf(b, a, 1 - x) / b;
+}
+
+// Two-tailed p-value for t-distribution
+function _tDistPValue(tAbs, df) {
+  if (df <= 0) return 1;
+  const x = df / (df + tAbs * tAbs);
+  return _betaIncomplete(df / 2, 0.5, x);
+}
+
+// Upper-tail p-value for F-distribution
+function _fDistPValue(f, df1, df2) {
+  if (f <= 0 || df1 <= 0 || df2 <= 0) return 1;
+  const x = df2 / (df2 + df1 * f);
+  return _betaIncomplete(df2 / 2, df1 / 2, x);
+}
+
+// Format p-value for display
+function _formatPValue(p) {
+  if (p < 0.0001) return '< 0.0001';
+  if (p < 0.001) return p.toFixed(4);
+  return p.toFixed(4);
+}
+
 // ── Scheme Combination 분석 UI 생성 (그룹 지정 방식) ──
 function _boxStats(arr) {
   if (!arr.length) return null;
@@ -3128,6 +3178,45 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
         etaSquared = ssTotal > 0 ? ssBetween / ssTotal : 0;
       }
 
+      // ── 유의성 검정 계산 ──
+      const nCorr = corrPairs.length;
+      const dfCorr = nCorr - 2; // 자유도
+
+      // Pearson r의 t-검정: t = r * sqrt(df / (1 - r²))
+      let tStatR = 0, pValueR = 1;
+      if (dfCorr > 0 && Math.abs(corrR) < 1) {
+        tStatR = corrR * Math.sqrt(dfCorr / (1 - corrR * corrR));
+        pValueR = _tDistPValue(Math.abs(tStatR), dfCorr);
+      } else if (Math.abs(corrR) >= 1 && dfCorr > 0) {
+        tStatR = Infinity;
+        pValueR = 0;
+      }
+
+      // One-way ANOVA F-검정
+      const kGroups = combGroups.length;
+      const dfBetween = kGroups - 1;
+      const dfWithin = nCorr - kGroups;
+      let fStat = 0, pValueF = 1;
+      if (dfBetween > 0 && dfWithin > 0) {
+        const grandMeanF = corrPairs.reduce((s,d) => s + d.score, 0) / nCorr;
+        let ssBetweenF = 0, ssWithinF = 0;
+        combGroups.forEach(cg => {
+          if (!cg.values.length) return;
+          const gMean = cg.values.reduce((a,b)=>a+b,0)/cg.values.length;
+          ssBetweenF += cg.values.length * (gMean - grandMeanF) ** 2;
+          cg.values.forEach(v => { ssWithinF += (v - gMean) ** 2; });
+        });
+        const msBetween = ssBetweenF / dfBetween;
+        const msWithin = ssWithinF / dfWithin;
+        fStat = msWithin > 0 ? msBetween / msWithin : 0;
+        pValueF = _fDistPValue(fStat, dfBetween, dfWithin);
+      }
+
+      const sigLabelR = pValueR < 0.001 ? '***' : pValueR < 0.01 ? '**' : pValueR < 0.05 ? '*' : 'n.s.';
+      const sigColorR = pValueR < 0.05 ? '#dc2626' : '#64748b';
+      const sigLabelF = pValueF < 0.001 ? '***' : pValueF < 0.01 ? '**' : pValueF < 0.05 ? '*' : 'n.s.';
+      const sigColorF = pValueF < 0.05 ? '#dc2626' : '#64748b';
+
       // 상관관계 결과 테이블
       const corrDiv = document.createElement('div');
       corrDiv.className = 'analysis-summary';
@@ -3141,13 +3230,26 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
         '<tr><td style="font-weight:600;color:#1e293b">r² (결정계수)</td>' +
         '<td style="font-size:16px;font-weight:700;color:#64748b">' + (corrR ** 2).toFixed(4) + '</td>' +
         '<td style="color:#475569">그룹이 ' + scoreLabel + ' 분산의 ' + ((corrR ** 2) * 100).toFixed(1) + '% 설명</td></tr>' +
+        '<tr style="background:#fffbeb"><td style="font-weight:600;color:#1e293b">t-통계량 (r 검정)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:#475569">' + (isFinite(tStatR) ? tStatR.toFixed(4) : '∞') + '</td>' +
+        '<td style="color:#475569">df = ' + dfCorr + '</td></tr>' +
+        '<tr style="background:#fffbeb"><td style="font-weight:600;color:#1e293b">p-value (r 검정)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:' + sigColorR + '">' + _formatPValue(pValueR) + ' <span style="font-size:13px;">' + sigLabelR + '</span></td>' +
+        '<td style="color:#475569">' + (pValueR < 0.05 ? '상관이 통계적으로 유의함 (α=0.05)' : '상관이 통계적으로 유의하지 않음') + '</td></tr>' +
         '<tr><td style="font-weight:600;color:#1e293b">η² (Eta-squared)</td>' +
         '<td style="font-size:16px;font-weight:700;color:' + (etaSquared >= 0.06 ? '#8b5cf6' : '#64748b') + '">' + etaSquared.toFixed(4) + '</td>' +
         '<td style="color:#475569">효과 크기: ' + etaStrength + '</td></tr>' +
+        '<tr style="background:#f0fdf4"><td style="font-weight:600;color:#1e293b">F-통계량 (ANOVA)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:#475569">' + fStat.toFixed(4) + '</td>' +
+        '<td style="color:#475569">df₁ = ' + dfBetween + ', df₂ = ' + dfWithin + '</td></tr>' +
+        '<tr style="background:#f0fdf4"><td style="font-weight:600;color:#1e293b">p-value (ANOVA)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:' + sigColorF + '">' + _formatPValue(pValueF) + ' <span style="font-size:13px;">' + sigLabelF + '</span></td>' +
+        '<td style="color:#475569">' + (pValueF < 0.05 ? '그룹 간 차이가 유의함 (α=0.05)' : '그룹 간 차이가 유의하지 않음') + '</td></tr>' +
         '<tr><td style="font-weight:600;color:#1e293b">N (총 데이터)</td>' +
         '<td style="font-size:16px;font-weight:700;color:#64748b">' + corrPairs.length + '</td>' +
         '<td style="color:#475569">' + combGroups.length + '개 그룹</td></tr>' +
-        '</tbody></table>';
+        '</tbody></table>' +
+        '<div style="font-size:11px;color:#94a3b8;padding:6px 10px;border-top:1px solid #e2e8f0;">유의수준: *** p&lt;0.001, ** p&lt;0.01, * p&lt;0.05, n.s. 유의하지 않음</div>';
       chartArea.appendChild(corrDiv);
 
       // Scatter plot — Score vs Group
