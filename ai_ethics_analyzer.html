@@ -673,8 +673,17 @@ body {
         <select id="selScheme">
           <option value="전체">Assessment</option>
         </select>
-        <select id="selResID">
-          <option value="" disabled selected hidden>ResID</option>
+        <select id="selSort">
+          <option value="" disabled selected hidden>정렬</option>
+          <option value="resid_asc">ResID (ASC)</option>
+          <option value="resid_dsc">ResID (DSC)</option>
+          <option value="n2_asc">N2 Score (ASC)</option>
+          <option value="n2_dsc">N2 Score (DSC)</option>
+          <option value="p_asc">P% Score (ASC)</option>
+          <option value="p_dsc">P% Score (DSC)</option>
+          <option value="assess_asc">Assess (ASC)</option>
+          <option value="assess_dsc">Assess (DSC)</option>
+          <option value="cancel">Cancel SRT</option>
         </select>
         <button class="btn btn-dark" onclick="openDocsModal()">Dilemma</button>
         <button class="btn btn-dark" onclick="guardCheckUnsaved(openSchemeManager, 'codeManager')">Code 관리</button>
@@ -1039,10 +1048,10 @@ function renderCards() {
     return;
   }
 
-  data.forEach(row => container.appendChild(buildCard(row, dil)));
+  // 정렬 적용
+  const sortedData = applySortToData(data, currentSortKey);
 
-  // ResID 드롭다운 채우기
-  populateResIDDropdown(data);
+  sortedData.forEach(row => container.appendChild(buildCard(row, dil)));
 
   // 모든 카드가 DOM에 삽입된 후 textarea 높이 조정
   // double rAF로 레이아웃 계산이 완료된 후 실행
@@ -1452,36 +1461,83 @@ document.getElementById('selScheme').addEventListener('change', () => {
   }, 'scheme');
 });
 
-// ── ResID 드롭다운 ──
-function populateResIDDropdown(data) {
-  const sel = document.getElementById('selResID');
-  sel.innerHTML = '';
-  const def = document.createElement('option');
-  def.value = ''; def.textContent = 'ResID';
-  def.disabled = true; def.hidden = true; def.selected = true;
-  sel.appendChild(def);
-  data.forEach(row => {
-    const opt = document.createElement('option');
-    opt.value = row.B || '';
-    opt.textContent = row.B || '-';
-    sel.appendChild(opt);
+// ── 정렬 상태 ──
+let currentSortKey = ''; // 현재 적용된 정렬 키
+
+// ── 정렬 함수 ──
+function applySortToData(data, sortKey) {
+  if (!sortKey || sortKey === 'cancel') return data; // 원본 순서 유지
+
+  const dil = document.getElementById('selDilemma').value;
+  const dm = DILEMMA_MAP[dil];
+
+  const sorted = data.slice(); // 복사본 정렬
+
+  sorted.sort((a, b) => {
+    let valA, valB;
+
+    switch(sortKey) {
+      case 'resid_asc':
+      case 'resid_dsc': {
+        valA = (a.B || '').toLowerCase();
+        valB = (b.B || '').toLowerCase();
+        // 자연 정렬 (숫자 포함 문자열)
+        const cmp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+        return sortKey === 'resid_asc' ? cmp : -cmp;
+      }
+      case 'n2_asc':
+      case 'n2_dsc': {
+        valA = parseFloat(a.C);
+        valB = parseFloat(b.C);
+        // IRD 등 텍스트는 맨 뒤로
+        const aValid = !isNaN(valA);
+        const bValid = !isNaN(valB);
+        if (!aValid && !bValid) return 0;
+        if (!aValid) return 1;
+        if (!bValid) return -1;
+        return sortKey === 'n2_asc' ? valA - valB : valB - valA;
+      }
+      case 'p_asc':
+      case 'p_dsc': {
+        valA = parseFloat(a.D);
+        valB = parseFloat(b.D);
+        const aV = !isNaN(valA);
+        const bV = !isNaN(valB);
+        if (!aV && !bV) return 0;
+        if (!aV) return 1;
+        if (!bV) return -1;
+        return sortKey === 'p_asc' ? valA - valB : valB - valA;
+      }
+      case 'assess_asc':
+      case 'assess_dsc': {
+        valA = getCellVal(a, dm.orientation).toLowerCase();
+        valB = getCellVal(b, dm.orientation).toLowerCase();
+        // 빈 값은 맨 뒤로
+        if (!valA && !valB) return 0;
+        if (!valA) return 1;
+        if (!valB) return -1;
+        const cmp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+        return sortKey === 'assess_asc' ? cmp : -cmp;
+      }
+      default:
+        return 0;
+    }
   });
+
+  return sorted;
 }
 
-document.getElementById('selResID').addEventListener('change', function() {
-  const resid = this.value;
-  if (!resid) return;
-  const card = document.querySelector('.card[data-resid="' + resid + '"]');
-  if (card) {
-    const headerH = document.getElementById('fixedHeader').offsetHeight;
-    const top = card.getBoundingClientRect().top + window.scrollY - headerH - 10;
-    window.scrollTo({ top, behavior: 'smooth' });
-    // 하이라이트 효과
-    card.style.boxShadow = '0 0 0 3px #3b82f6';
-    setTimeout(() => { card.style.boxShadow = ''; }, 2000);
+// ── 정렬 드롭다운 이벤트 ──
+document.getElementById('selSort').addEventListener('change', function() {
+  const sortKey = this.value;
+  if (sortKey === 'cancel') {
+    currentSortKey = '';
+    this.selectedIndex = 0; // placeholder로 복원
+  } else {
+    currentSortKey = sortKey;
   }
-  // 선택 후 placeholder로 복원
-  this.selectedIndex = 0;
+  renderCards();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
 // ── UI 유틸 ──
@@ -2526,7 +2582,7 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
     row.style.cssText = 'display:flex;align-items:center;gap:4px;flex-shrink:0;';
 
     const label = document.createElement('span');
-    label.style.cssText = 'font-size:11px;font-weight:700;color:#1e293b;white-space:nowrap;';
+    label.style.cssText = 'font-size:11px;font-weight:700;color:#94a3b8;white-space:nowrap;text-decoration:line-through;';
     label.textContent = k;
 
     const sel = document.createElement('select');
@@ -2536,18 +2592,18 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
       const opt = document.createElement('option');
       opt.value = g;
       opt.textContent = 'G' + g;
-      if (g === i + 1) opt.selected = true;
       sel.appendChild(opt);
     }
-    // 제외 옵션 추가
+    // 제외 옵션 추가 (기본 선택)
     const excludeOpt = document.createElement('option');
     excludeOpt.value = 'exclude';
     excludeOpt.textContent = '제외';
+    excludeOpt.selected = true;
     sel.appendChild(excludeOpt);
     // 색상 표시
     const colors = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
     const colorDot = document.createElement('span');
-    colorDot.style.cssText = 'width:12px;height:12px;border-radius:3px;flex-shrink:0;background:' + colors[i % colors.length] + ';';
+    colorDot.style.cssText = 'width:12px;height:12px;border-radius:3px;flex-shrink:0;background:#cbd5e1;';
 
     sel.addEventListener('change', () => {
       if (sel.value === 'exclude') {
@@ -2852,8 +2908,7 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
 
   analyzeBtn.addEventListener('click', renderCombCharts);
 
-  // 초기 렌더 (각각 별도 그룹) — 모달 렌더링 완료 후
-  setTimeout(() => renderCombCharts(), 500);
+  // 초기 상태: 모두 제외 — 그룹 지정 후 '조합 분석' 버튼 클릭 시 렌더링
 
   return wrapper;
 }
@@ -3433,7 +3488,7 @@ function printCards() {
   const dil = document.getElementById('selDilemma').value;
   const dm = DILEMMA_MAP[dil];
   const dilShort = DILEMMA_SHORT_NAMES[dil] || '';
-  const data = getFilteredData();
+  const data = applySortToData(getFilteredData(), currentSortKey);
 
   // 현재 화면에서 editable-field의 실시간 값을 수집 (카드에서 수정 중인 내용 반영)
   const liveEdits = {};
