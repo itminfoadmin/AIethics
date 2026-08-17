@@ -39,7 +39,7 @@ body {
   display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
   box-shadow:0 1px 3px rgba(0,0,0,.06);
 }
-.topbar-inner { max-width:80%; margin:0 auto; display:flex; align-items:center; justify-content:flex-start; width:100%; flex-wrap:wrap; gap:8px; }
+.topbar-inner { max-width:80%; margin:0 auto; display:flex; align-items:center; justify-content:space-between; width:100%; flex-wrap:wrap; gap:8px; }
 .topbar-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex-shrink:0; }
 .topbar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 
@@ -257,7 +257,7 @@ body {
   overflow:visible;
 }
 
-.kso-field-row { display:flex; align-items:center; justify-content:center; gap:6px; width:130%; margin-left:-15%; overflow:visible; }
+.kso-field-row { display:flex; align-items:center; justify-content:center; gap:6px; width:104%; margin-left:-2%; overflow:visible; }
 .kso-field-label {
   font-size:12px; font-weight:600; color:#64748b;
   min-width:72px; letter-spacing:.3px; text-align:right;
@@ -514,25 +514,29 @@ body {
   display:flex; align-items:center; gap:0; margin-left:6px;
 }
 .analysis-mode-btn {
-  padding:4px 10px; font-size:11px; font-weight:700; border:2px solid rgba(255,255,255,.5);
+  padding:3px 14px; font-size:12px; font-weight:700; border:2px solid rgba(255,255,255,.6);
   cursor:pointer; font-family:inherit; transition:all .15s; background:transparent; color:rgba(255,255,255,.6);
-  white-space:nowrap;
+  white-space:nowrap; line-height:1.2;
 }
-.analysis-mode-btn:first-child { border-radius:5px 0 0 5px; border-right:1px solid rgba(255,255,255,.5); }
-.analysis-mode-btn:last-child  { border-radius:0 5px 5px 0; border-left:1px solid rgba(255,255,255,.5); }
-.analysis-mode-btn.active { background:rgba(255,255,255,.2); color:#fff; border-color:rgba(255,255,255,.7); }
-.analysis-mode-btn:hover:not(.active) { background:rgba(255,255,255,.1); }
+.analysis-mode-btn:first-child { border-radius:6px 0 0 6px; border-right:1px solid rgba(255,255,255,.5); }
+.analysis-mode-btn:last-child  { border-radius:0 6px 6px 0; border-left:1px solid rgba(255,255,255,.5); }
+.analysis-mode-btn.active { background:#3b82f6; color:#fff; border-color:#3b82f6; box-shadow:0 0 8px rgba(59,130,246,.4); }
+.analysis-mode-btn:hover:not(.active) { background:rgba(255,255,255,.15); color:#fff; }
 
 /* ── Disabled analysis fields ── */
 .analysis-disabled {
-  opacity:0.35; pointer-events:none; position:relative;
+  opacity:0.75; pointer-events:none; position:relative;
 }
 .analysis-disabled .kso-field-input,
 .analysis-disabled .scheme-select {
-  background:#f1f5f9 !important; border-color:#e2e8f0 !important;
+  background:#f1f5f9 !important; border-color:#cbd5e1 !important; color:#64748b !important;
 }
 .analysis-disabled::after {
   content:''; position:absolute; inset:0; cursor:not-allowed;
+}
+/* Hide analysis fields completely */
+.analysis-hidden {
+  display:none !important;
 }
 /* Assessment dropdown hide (keep desc visible) */
 .assess-dropdown-hidden .kso-field-row {
@@ -700,14 +704,8 @@ body {
         <button class="analysis-mode-btn active" id="modeBtn1" onclick="setAnalysisMode(1)">1차 분석</button>
         <button class="analysis-mode-btn" id="modeBtn2" onclick="setAnalysisMode(2)">2차 분석</button>
       </div>
+      <span id="totalBadge" style="font-size:13px;font-weight:700;color:#94a3b8;white-space:nowrap;margin-left:4px;">[0건]</span>
       <div class="title-right-controls">
-        <div class="toggle-wrap">
-          <span class="toggle-label" style="color:rgba(255,255,255,.7);">DIT 결과 노출</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="ethicsToggle" onchange="toggleEthicsScores()">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
         <button class="btn btn-gray" onclick="guardCheckUnsaved(loadData, 'reload')">Reload</button>
         <button class="btn btn-green" onclick="saveAll()">저장</button>
         <button class="btn btn-red" onclick="printSummarySheet()">원본 시트</button>
@@ -744,9 +742,18 @@ body {
           <option value="assess_dsc">Assess (DSC)</option>
           <option value="cancel">Cancel SRT</option>
         </select>
-        <button class="btn btn-dark" onclick="openDocsModal()">Dilemma</button>
-        <button class="btn btn-dark" onclick="guardCheckUnsaved(openSchemeManager, 'codeManager')">Code</button>
-        <span id="totalBadge" style="font-size:13px;font-weight:700;color:#3b82f6;white-space:nowrap;">[0건]</span>
+        <span id="filteredBadge" style="font-size:13px;font-weight:700;color:#3b82f6;white-space:nowrap;">[0건]</span>
+      </div>
+      <div class="topbar-right">
+        <div class="toggle-wrap">
+          <span class="toggle-label">DIT 결과 노출</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="ethicsToggle" onchange="toggleEthicsScores()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <button class="btn btn-dark" onclick="guardCheckUnsaved(openSchemeManager, 'codeManager')">Code 보기</button>
+        <button class="btn btn-dark" onclick="openDocsModal()">Dilemma 보기</button>
       </div>
     </div>
   </div>
@@ -895,10 +902,10 @@ let analysisMode = 1; // 1=1차분석, 2=2차분석
 // ── analyzing 탭 읽기/저장 ──
 async function loadAnalyzingMode() {
   try {
-    const resp = await fetch(GAS_URL + '?tab=analyzing&t=' + Date.now(), { cache: 'no-store' });
+    const resp = await fetchWithRetry(GAS_URL + '?tab=analyzing&t=' + Date.now(), {}, 2, 15000);
     const json = await resp.json();
     if (json.status === 'ok' && json.tabData && json.tabData.length > 0) {
-      const val = parseInt(json.tabData[0][1]); // B1 값
+      const val = parseInt(json.tabData[0][1]);
       if (val === 1 || val === 2) analysisMode = val;
     }
   } catch(e) {
@@ -940,53 +947,73 @@ function applyAnalysisMode() {
 }
 
 function applyAnalysisModeToCards() {
-  // 1차 분석: keyword(Analysis-1A), scheme(Analysis-1B), orientation(Assessment-1) 활성
-  //           analysis2A, analysis2B, assessment2 비활성
-  // 2차 분석: 반대
-  const textFields1 = ['keyword', 'scheme'];
-  const textFields2 = ['analysis2A', 'analysis2B'];
-  const assessField1 = 'orientation';
-  const assessField2 = 'assessment2';
-  const activeTextFields = analysisMode === 1 ? textFields1 : textFields2;
-  const disabledTextFields = analysisMode === 1 ? textFields2 : textFields1;
-  const hiddenAssess = analysisMode === 1 ? assessField2 : assessField1;
-  const shownAssess = analysisMode === 1 ? assessField1 : assessField2;
+  // 1차 분석: Analysis-2A, Analysis-2B, Assessment-2 숨김
+  // 2차 분석: Analysis-1A, Analysis-1B 비활성화, Assessment-1 드롭다운 숨김 (라벨은 유지)
+  const fields1 = ['keyword', 'scheme'];
+  const fields2 = ['analysis2A', 'analysis2B'];
 
-  // Analysis textarea 필드 활성/비활성
+  // Analysis textarea 필드
   document.querySelectorAll('.editable-field').forEach(el => {
     const field = el.dataset.field;
     if (!field) return;
     const row = el.closest('.resp-row');
     if (row && row.hasAttribute('data-analysis-group')) {
-      if (disabledTextFields.includes(field)) {
+      row.classList.remove('analysis-hidden', 'analysis-disabled');
+      if (analysisMode === 1 && fields2.includes(field)) {
+        row.classList.add('analysis-hidden');
+      } else if (analysisMode === 2 && fields1.includes(field)) {
         row.classList.add('analysis-disabled');
-      } else {
-        row.classList.remove('analysis-disabled');
       }
     }
   });
 
-  // Assessment 드롭다운 숨기기/보이기 (설명 텍스트는 유지)
-  document.querySelectorAll('[data-analysis-group]').forEach(el => {
+  // Assessment 드롭다운 (resp-row가 아닌 assessment wrapper만 대상)
+  document.querySelectorAll('[data-analysis-group]:not(.resp-row)').forEach(el => {
     const group = el.getAttribute('data-analysis-group');
-    if (group === hiddenAssess) {
+    el.classList.remove('analysis-hidden', 'assess-dropdown-hidden', 'analysis-disabled');
+    if (analysisMode === 1 && group === 'assessment2') {
+      el.classList.add('analysis-hidden');
+    } else if (analysisMode === 2 && group === 'orientation') {
       el.classList.add('assess-dropdown-hidden');
-      el.classList.remove('analysis-disabled');
-    } else if (group === shownAssess) {
-      el.classList.remove('assess-dropdown-hidden');
-      el.classList.remove('analysis-disabled');
     }
   });
+
+  // Assessment-2 라벨+래퍼 숨기기/보이기
+  document.querySelectorAll('[data-assess-label-group]').forEach(el => {
+    const group = el.getAttribute('data-assess-label-group');
+    if (group === 'assessment2') {
+      if (analysisMode === 1) {
+        el.classList.add('analysis-hidden');
+      } else {
+        el.classList.remove('analysis-hidden');
+      }
+    }
+  });
+
+  // 1차 분석시 Assessment-2 필터 드롭다운 비활성화
+  const selScheme2 = document.getElementById('selScheme2');
+  if (selScheme2) {
+    if (analysisMode === 1) {
+      selScheme2.disabled = true;
+      selScheme2.style.opacity = '0.4';
+      selScheme2.style.cursor = 'not-allowed';
+      selScheme2.value = '전체';
+    } else {
+      selScheme2.disabled = false;
+      selScheme2.style.opacity = '1';
+      selScheme2.style.cursor = 'pointer';
+    }
+  }
 }
 
 // ── Code 탭 데이터 로드 ──
 async function loadCodeTab() {
   try {
-    const resp = await fetch(GAS_URL + '?tab=Code&t=' + Date.now(), { cache: 'no-store' });
+    updateLoadingStatus('Code 탭 로드 중...');
+    const resp = await fetchWithRetry(GAS_URL + '?tab=Code&t=' + Date.now());
     const json = await resp.json();
     if (json.status !== 'ok' || !json.tabData) return;
     codeTabData = [];
-    // 첫 행은 헤더, 2행부터 데이터
     for (let i = 1; i < json.tabData.length; i++) {
       const row = json.tabData[i];
       const code = (row[0] || '').trim();
@@ -994,12 +1021,12 @@ async function loadCodeTab() {
       codeTabData.push({
         code: code,
         descs: [
-          (row[1] || '').trim(), // B - Dilemma1
-          (row[2] || '').trim(), // C - Dilemma2
-          (row[3] || '').trim(), // D - Dilemma3
-          (row[4] || '').trim(), // E - Dilemma4
+          (row[1] || '').trim(),
+          (row[2] || '').trim(),
+          (row[3] || '').trim(),
+          (row[4] || '').trim(),
         ],
-        rowIndex: i + 1 // 시트에서의 실제 행 번호 (1-based)
+        rowIndex: i + 1
       });
     }
   } catch(e) {
@@ -1038,16 +1065,64 @@ const SUMMARY_TABS = {
 const SPREADSHEET_ID = '1IUrk06bIaNasc8i1Tm3OPqmzSDSX_GlazYrFgyx6n6E';
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStbAGKTWUpvvqnD9HGmu1-wilOZRwgV-q3SvJ1jRnaXF8lF5IGKf9z-Llh6diDlY9323nLprWJ8h61/pub?output=csv';
 
+// ── 재시도 fetch 래퍼 ──
+async function fetchWithRetry(url, options = {}, maxRetries = 3, timeoutMs = 30000) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const resp = await fetch(url, { ...options, signal: controller.signal, cache: 'no-store' });
+      clearTimeout(timeoutId);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp;
+    } catch(e) {
+      clearTimeout(timeoutId);
+      lastError = e;
+      console.warn(`fetch 시도 ${attempt}/${maxRetries} 실패:`, e.message);
+      if (attempt < maxRetries) {
+        // 재시도 전 대기 (1초, 2초, ...)
+        await new Promise(r => setTimeout(r, attempt * 1000));
+      }
+    }
+  }
+  throw lastError;
+}
+
+// ── 로딩 진행 상태 업데이트 ──
+function updateLoadingStatus(msg) {
+  const el = document.querySelector('.loading-text');
+  if (el) el.textContent = msg;
+}
+
 // ── 데이터 로드 ──
 async function loadData() {
   showLoading(true);
   try {
-    await Promise.all([loadCodeTab(), loadAnalyzingMode()]); // Code 탭 + analyzing 탭 먼저 로드
-    const ok = await loadFromGAS();
-    if (!ok) throw new Error('GAS 서버 응답 실패');
+    // 3개 API 호출을 모두 병렬로 실행 (각각 자동 재시도)
+    updateLoadingStatus('서버 연결 중...');
+    const results = await Promise.allSettled([
+      loadCodeTab(),
+      loadAnalyzingMode(),
+      loadFromGAS()
+    ]);
+
+    // 메인 데이터(GAS) 실패 시 에러
+    if (results[2].status === 'rejected' || results[2].value === false) {
+      const errMsg = results[2].reason?.message || 'GAS 서버 응답 실패';
+      throw new Error(errMsg);
+    }
+
+    // Code/Analyzing 실패는 경고만 (치명적이지 않음)
+    if (results[0].status === 'rejected') console.warn('Code 탭 로드 실패 (무시)');
+    if (results[1].status === 'rejected') console.warn('Analyzing 탭 로드 실패 (무시)');
+
+    updateLoadingStatus('카드 렌더링 중...');
+    renderCards();
+    showToast('데이터 로드 완료: ' + allData.length + '건');
   } catch(err) {
     console.error(err);
-    showErrorModal('GAS 서버에 연결할 수 없습니다.\n(' + err.message + ')\n\n※ GAS 스크립트의 SPREADSHEET_ID와 탭 이름(data, code)을 확인하세요.');
+    showErrorModal('GAS 서버에 연결할 수 없습니다.\n(' + err.message + ')\n\n※ 네트워크 상태를 확인하거나 잠시 후 다시 시도하세요.');
   } finally {
     showLoading(false);
   }
@@ -1089,41 +1164,37 @@ function normalizeGASValue(val) {
 // ── GAS에서 읽기 ──
 async function loadFromGAS() {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-    const cacheBuster = '?t=' + Date.now();
-    const resp = await fetch(GAS_URL + cacheBuster, { signal: controller.signal, cache: 'no-store' });
-    clearTimeout(timeoutId);
+    updateLoadingStatus('데이터 로드 중...');
+    const resp = await fetchWithRetry(GAS_URL + '?t=' + Date.now());
 
-    if (!resp.ok) throw new Error('HTTP ' + resp.status + ': ' + resp.statusText);
-
+    updateLoadingStatus('데이터 파싱 중...');
     const text = await resp.text();
     let json;
     try { json = JSON.parse(text); } catch(pe) {
       console.error('GAS 응답 파싱 실패. 원본:', text.substring(0, 500));
-      throw new Error('JSON 파싱 실패 — GAS 스크립트 오류 가능성.\n응답: ' + text.substring(0, 200));
+      throw new Error('JSON 파싱 실패 — GAS 스크립트 오류 가능성');
     }
     if (json.status !== 'ok') throw new Error(json.message || 'GAS status not ok');
 
     allData = [];
-    json.data.forEach(r => {
-      if (r.A && r.A.trim() === 'Ready') return;
+    const rows = json.data;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      if (r.A && r.A.trim() === 'Ready') continue;
 
       const rawArr = COL_NAMES.map(c => normalizeGASValue(r[c]));
       allData.push({
         rowNum: r.rowNum,
         raw: rawArr,
-        A: normalizeGASValue(r.A), // ResID
-        B: normalizeGASValue(r.B), // N2
-        C: normalizeGASValue(r.C), // P%
-        D: normalizeGASValue(r.D), // Age
-        E: normalizeGASValue(r.E), // Sex
-        F: normalizeGASValue(r.F), // AIE_exp
+        A: normalizeGASValue(r.A),
+        B: normalizeGASValue(r.B),
+        C: normalizeGASValue(r.C),
+        D: normalizeGASValue(r.D),
+        E: normalizeGASValue(r.E),
+        F: normalizeGASValue(r.F),
       });
-    });
+    }
 
-    renderCards();
-    showToast('데이터 로드 완료: ' + allData.length + '건');
     return true;
   } catch(e) {
     console.error('GAS 로드 실패:', e);
@@ -1222,7 +1293,8 @@ function renderCards() {
   container.innerHTML = '';
 
   const schFilter = document.getElementById('selScheme').value;
-  document.getElementById('totalBadge').textContent = '[' + allData.length + '건]';
+  document.getElementById('totalBadge').textContent = '[전체 ' + allData.length + '건]';
+  document.getElementById('filteredBadge').textContent = '[' + data.length + '건]';
 
   if (data.length === 0) {
     container.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">해당 조건의 데이터가 없습니다.</div>';
@@ -1232,17 +1304,28 @@ function renderCards() {
   // 정렬 적용
   const sortedData = applySortToData(data, currentSortKey);
 
-  sortedData.forEach(row => container.appendChild(buildCard(row, dil)));
+  // DocumentFragment로 DOM 일괄 삽입 (리플로우 최소화)
+  const fragment = document.createDocumentFragment();
+  sortedData.forEach(row => fragment.appendChild(buildCard(row, dil)));
+  container.appendChild(fragment);
 
-  // 모든 카드가 DOM에 삽입된 후 textarea 높이 조정
-  // double rAF로 레이아웃 계산이 완료된 후 실행
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      container.querySelectorAll('textarea.editable-field').forEach(ta => {
-        ta.style.height = 'auto';
-        ta.style.height = ta.scrollHeight + 'px';
-      });
+  // IntersectionObserver로 화면에 보이는 textarea만 높이 조정 (lazy resize)
+  if (window._cardResizeObserver) window._cardResizeObserver.disconnect();
+  window._cardResizeObserver = new IntersectionObserver((entries, obs) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const card = entry.target;
+        card.querySelectorAll('textarea.editable-field').forEach(ta => {
+          ta.style.height = 'auto';
+          ta.style.height = ta.scrollHeight + 'px';
+        });
+        obs.unobserve(card);
+      }
     });
+  }, { rootMargin: '200px' });
+
+  container.querySelectorAll('.card').forEach(card => {
+    window._cardResizeObserver.observe(card);
   });
 }
 
@@ -1332,13 +1415,17 @@ function buildCard(row, dilemma) {
   const oriSelect1 = buildAssessmentDropdown(row, dilemma, 'orientation', dm.orientation, descColIdx);
   ksoArea.appendChild(oriSelect1.wrapper);
 
-  // Assessment-2 dropdown
+  // Assessment-2 dropdown + label
+  const assess2Wrap = document.createElement('div');
+  assess2Wrap.setAttribute('data-assess-label-group', 'assessment2');
   const assess2Label = document.createElement('div');
   assess2Label.style.cssText = 'font-size:11px;font-weight:700;color:#64748b;text-align:center;letter-spacing:.3px;margin-top:8px;margin-bottom:2px;';
   assess2Label.textContent = 'Assessment-2';
-  ksoArea.appendChild(assess2Label);
+  assess2Wrap.appendChild(assess2Label);
   const oriSelect2 = buildAssessmentDropdown(row, dilemma, 'assessment2', dm.assessment2, descColIdx);
-  ksoArea.appendChild(oriSelect2.wrapper);
+  assess2Wrap.appendChild(oriSelect2.wrapper);
+  if (analysisMode === 1) assess2Wrap.classList.add('analysis-hidden');
+  ksoArea.appendChild(assess2Wrap);
 
   body.append(respArea, ksoArea);
   card.appendChild(body);
@@ -1365,10 +1452,10 @@ function makeEditableRow(label, row, dilemma, field, colIdx) {
   input.addEventListener('input', autoResize);
   rowDiv.append(lbl, input);
 
-  // 분석 모드에 따라 비활성화
+  // 1차 분석: 2차 필드 숨김 / 2차 분석: 1차 필드 비활성화
   const fields1 = ['keyword', 'scheme'];
   const fields2 = ['analysis2A', 'analysis2B'];
-  if (analysisMode === 1 && fields2.includes(field)) rowDiv.classList.add('analysis-disabled');
+  if (analysisMode === 1 && fields2.includes(field)) rowDiv.classList.add('analysis-hidden');
   if (analysisMode === 2 && fields1.includes(field)) rowDiv.classList.add('analysis-disabled');
 
   return rowDiv;
@@ -1420,8 +1507,8 @@ function buildAssessmentDropdown(row, dilemma, field, colIdx, descColIdx) {
     descDiv.textContent = mc ? (mc.descs[descColIdx - 1] || mc.descs[0] || '') : '';
   });
 
-  // 분석 모드에 따라 드롭다운 숨기기 (설명은 유지)
-  if (analysisMode === 1 && field === 'assessment2') wrapper.classList.add('assess-dropdown-hidden');
+  // 1차 분석: assessment2 숨김 / 2차 분석: orientation 드롭다운 숨김 (라벨 유지)
+  if (analysisMode === 1 && field === 'assessment2') wrapper.classList.add('analysis-hidden');
   if (analysisMode === 2 && field === 'orientation') wrapper.classList.add('assess-dropdown-hidden');
 
   return { wrapper, select: sel };
