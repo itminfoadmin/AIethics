@@ -3945,15 +3945,15 @@ function printCards() {
   html += '<div class="print-report-title">' + escHtml(title) + '</div>';
   html += '<table class="print-report-table">';
   html += '<colgroup>'
-    + '<col style="width:7%"><col style="width:6%"><col style="width:3%"><col style="width:3%">'
+    + '<col style="width:7%"><col style="width:6%"><col style="width:6%"><col style="width:3%"><col style="width:3%">'
     + '<col style="width:4%"><col style="width:4%"><col style="width:5%">'
-    + '<col style="width:22%"><col style="width:11%"><col style="width:11%">'
-    + '<col style="width:8%"><col style="width:8%"><col style="width:6%">'
+    + '<col style="width:22%"><col style="width:10%"><col style="width:10%">'
+    + '<col style="width:8%"><col style="width:8%">'
     + '</colgroup>';
   html += '<thead><tr>'
-    + '<th>ResID</th><th>Assess-1</th><th>Age</th><th>Sex</th><th>N2</th><th>P%</th>'
+    + '<th>ResID</th><th>Assess-1</th><th>Assess-2</th><th>Age</th><th>Sex</th><th>N2</th><th>P%</th>'
     + '<th>Resp-1</th><th>Resp-2</th><th>Ana-1A</th><th>Ana-1B</th>'
-    + '<th>Ana-2A</th><th>Ana-2B</th><th>Assess-2</th>'
+    + '<th>Ana-2A</th><th>Ana-2B</th>'
     + '</tr></thead><tbody>';
 
   data.forEach(row => {
@@ -3987,6 +3987,7 @@ function printCards() {
     html += '<tr>'
       + '<td class="center">' + resid + '</td>'
       + '<td class="center">' + orientation + '</td>'
+      + '<td class="center">' + assess2 + '</td>'
       + '<td class="center">' + age + '</td>'
       + '<td class="center">' + sex + '</td>'
       + '<td class="center">' + n2 + '</td>'
@@ -3997,7 +3998,6 @@ function printCards() {
       + '<td>' + analysis1B + '</td>'
       + '<td>' + analysis2A + '</td>'
       + '<td>' + analysis2B + '</td>'
-      + '<td class="center">' + assess2 + '</td>'
       + '</tr>';
   });
 
