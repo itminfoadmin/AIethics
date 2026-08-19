@@ -463,6 +463,7 @@ body {
   background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px;
   word-break:break-word; white-space:pre-wrap;
   max-height:100px; overflow-y:auto;
+  text-align:center;
 }
 .scheme-select {
   width:100%; border:2px solid #8b5cf6; border-radius:5px;
@@ -1948,11 +1949,11 @@ function renderModalBody(row, editMode) {
             <span class="modal-resp-label">Analysis-1B</span>
             ${makeEditTA('scheme', sc)}
           </div>
-          <div class="modal-resp-row">
+          <div class="modal-resp-row" ${analysisMode === 1 ? 'style="display:none;"' : ''}>
             <span class="modal-resp-label">Analysis-2A</span>
             ${makeEditTA('analysis2A', a2a)}
           </div>
-          <div class="modal-resp-row">
+          <div class="modal-resp-row" ${analysisMode === 1 ? 'style="display:none;"' : ''}>
             <span class="modal-resp-label">Analysis-2B</span>
             ${makeEditTA('analysis2B', a2b)}
           </div>
@@ -1962,7 +1963,7 @@ function renderModalBody(row, editMode) {
             <div style="font-size:11px;font-weight:700;color:#94a3b8;">Assessment-1</div>
             ${makeAssessSelect('orientation', ori)}
           </div>
-          <div class="modal-kso-row" style="flex-direction:column;gap:4px;margin-top:8px;">
+          <div class="modal-kso-row" style="flex-direction:column;gap:4px;margin-top:8px;${analysisMode === 1 ? 'display:none;' : ''}">
             <div style="font-size:11px;font-weight:700;color:#94a3b8;">Assessment-2</div>
             ${makeAssessSelect('assessment2', as2)}
           </div>
