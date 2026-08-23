@@ -42,6 +42,10 @@ body {
 .topbar-inner { max-width:80%; margin:0 auto; display:flex; align-items:center; justify-content:space-between; width:100%; flex-wrap:wrap; gap:8px; }
 .topbar-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex-shrink:0; }
 .topbar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.topbar-right .btn {
+  padding:5px 10px !important; font-size:13px !important; min-height:0 !important;
+  line-height:1.38; box-sizing:border-box;
+}
 
 .topbar select {
   padding:5px 10px; border:1px solid #cbd5e1; border-radius:6px;
@@ -248,16 +252,40 @@ body {
 /* ── Card Body: new layout ── */
 .card-body { padding:14px; }
 
-.resp-row { display:flex; align-items:flex-start; margin-bottom:10px; }
+.resp-wrapper { display:flex; align-items:stretch; margin-bottom:10px; gap:8px; }
+.resp-left-col { flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
+.resp-row-inner { display:flex; align-items:flex-start; }
 .resp-label-side {
   width:100px; min-width:100px; font-weight:600; font-size:12px;
   padding-top:8px; color:#64748b; letter-spacing:.2px;
 }
 .resp-text {
-  flex:1; min-width:0; border:1px solid #e2e8f0; border-radius:6px; padding:8px 10px;
-  min-height:46px; font-size:13px; line-height:1.6;
+  flex:1; min-width:0; border:1px solid #e2e8f0; border-radius:5px; padding:8px 10px;
+  min-height:38px; font-size:13px; line-height:1.5;
   background:#fff; white-space:pre-wrap; word-break:break-word;
-  color:#475569;
+  color:#475569; font-weight:600;
+}
+.resp-right-col {
+  width:228px; min-width:228px; display:flex; flex-direction:column;
+}
+.resp-desc-box {
+  flex:1; position:relative; border:1.5px solid #94a3b8; border-radius:8px;
+  background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:22px 10px 18px; text-align:center;
+  font-size:13px; font-weight:600; color:#1e293b;
+  word-break:break-word;
+}
+.resp-desc-legend {
+  position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+  background:#fff; padding:0 10px; font-size:13px; font-weight:700;
+  color:#ef4444; letter-spacing:.3px; white-space:nowrap;
+}
+.resp-desc-text {
+  line-height:1.5;
+}
+.resp-desc-code {
+  font-size:10.4px; font-weight:600; color:#94a3b8; margin-top:4px;
+  line-height:1.3;
 }
 
 /* Analysis row: label | textarea | right-control */
@@ -349,8 +377,14 @@ body {
   padding:5px 8px; font-size:12px; font-family:inherit; color:#1e293b;
   background:#fff; font-weight:600; cursor:pointer;
   transition:border-color .15s;
+  box-sizing:border-box;
+  height:36px;
 }
 .modal-assessment-select:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
+.modal-resp-result.edit-mode {
+  align-self:flex-start;
+  justify-content:flex-start;
+}
 .modal-body { padding:0; flex:1; overflow-y:auto; border-radius:0 0 10px 10px; }
 
 .modal-dilemma { padding:16px 24px; border-bottom:1px solid #f1f5f9; }
@@ -358,21 +392,25 @@ body {
 .modal-dilemma-header { display:flex; align-items:center; gap:16px; margin-bottom:10px; }
 .modal-dilemma-title { font-size:14px; font-weight:600; color:#1e293b; flex:1; }
 .modal-resp-area { display:flex; flex-direction:column; gap:8px; }
-.modal-resp-row { display:flex; align-items:flex-start; gap:10px; }
-.modal-resp-label { min-width:110px; font-size:12px; font-weight:600; color:#64748b; padding-top:7px; }
+.modal-resp-row { display:flex; align-items:stretch; gap:10px; }
+.modal-resp-label { min-width:110px; font-size:12px; font-weight:600; color:#64748b; padding-top:7px; align-self:flex-start; }
 .modal-resp-val {
   flex:1; border:1px solid #e2e8f0; border-radius:6px; padding:8px 10px;
   font-size:13px; background:#f8fafc; color:#475569; line-height:1.6;
   min-height:36px; font-family:inherit;
   white-space:pre-wrap; word-break:break-word;
+  align-self:stretch;
 }
 .modal-resp-result {
   width:168px; min-width:168px;
+  display:flex; flex-direction:column;
 }
 .modal-resp-result-val {
   border:1px solid #e2e8f0; border-radius:5px; padding:5px 8px;
   font-size:12px; background:#f1f5f9; color:#475569; font-family:inherit;
   min-height:26px; text-align:center; font-weight:600;
+  flex:1; display:flex; align-items:center; justify-content:center;
+  word-break:break-word;
 }
 
 /* ── Dilemma Docs Modal ── */
@@ -610,11 +648,15 @@ body {
       <span>AI Ethics Analyze Tool</span>
       <span id="totalBadge" style="font-size:12px;color:#94a3b8;font-weight:500;white-space:nowrap;"></span>
       <div class="title-right-controls">
-        <button class="btn btn-gray" onclick="guardCheckUnsaved(loadData, 'reload')">Reload</button>
-        <button class="btn btn-green" onclick="saveAll()">저장</button>
-        <button class="btn btn-red" onclick="printSummarySheet()">원본 시트</button>
-        <button class="btn btn-blue" onclick="guardCheckUnsaved(openCombinedAnalysis, 'analysis')">자료 분석</button>
-        <button class="btn btn-blue" onclick="guardCheckUnsaved(printCards, 'print')" style="background:#7c3aed;">인쇄</button>
+        <div class="toggle-wrap">
+          <span class="toggle-label" style="color:#94a3b8;">DIT 결과 노출</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="ethicsToggle" onchange="toggleEthicsScores()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <button class="btn btn-dark btn-sm" onclick="guardCheckUnsaved(openSchemeManager, 'codeManager')">Code 보기</button>
+        <button class="btn btn-dark btn-sm" onclick="openDocsModal()">Dilemma 보기</button>
         <button class="btn btn-dark" onclick="showExitConfirm()">종료</button>
       </div>
     </div>
@@ -646,15 +688,11 @@ body {
         <span id="filteredBadge" style="font-size:13px;font-weight:700;color:#3b82f6;white-space:nowrap;">[0건]</span>
       </div>
       <div class="topbar-right">
-        <div class="toggle-wrap">
-          <span class="toggle-label">DIT 결과 노출</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="ethicsToggle" onchange="toggleEthicsScores()">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <button class="btn btn-dark" onclick="guardCheckUnsaved(openSchemeManager, 'codeManager')">Code 보기</button>
-        <button class="btn btn-dark" onclick="openDocsModal()">Dilemma 보기</button>
+        <button class="btn btn-gray btn-sm" onclick="guardCheckUnsaved(loadData, 'reload')">Reload</button>
+        <button class="btn btn-green btn-sm" onclick="saveAll()">저장</button>
+        <button class="btn btn-red btn-sm" onclick="printSummarySheet()">원본 시트</button>
+        <button class="btn btn-blue btn-sm" onclick="showAnalysisTargetModal()">자료 분석</button>
+        <button class="btn btn-sm" onclick="guardCheckUnsaved(printCards, 'print')" style="background:#7c3aed;color:#fff;">인쇄</button>
       </div>
     </div>
   </div>
@@ -738,6 +776,22 @@ body {
         <div class="loading-text">Code 로드 중...</div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- 분석 대상 선택 모달 -->
+<div class="exit-modal-overlay" id="analysisTargetOverlay">
+  <div class="exit-modal-box" style="max-width:440px;">
+    <div class="exit-modal-icon">📊</div>
+    <div class="exit-modal-title">분석 기준 선택</div>
+    <div class="exit-modal-msg" style="margin-bottom:16px;">어떤 분석 결과를 기준으로 자료를 분석할까요?</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px;">
+      <button class="btn btn-blue" style="width:100%;padding:12px;font-size:14px;" onclick="runAnalysisWithTarget('analysis1Result')">1st_Analysis_Result 기준</button>
+      <button class="btn btn-blue" style="width:100%;padding:12px;font-size:14px;" onclick="runAnalysisWithTarget('analysis2Result')">2nd_Analysis_Result 기준</button>
+      <button class="btn btn-blue" style="width:100%;padding:12px;font-size:14px;" onclick="runAnalysisWithTarget('analysis3Result')">3rd_Analysis_Result 기준</button>
+      <button class="btn btn-dark" style="width:100%;padding:12px;font-size:14px;" onclick="runAnalysisWithTarget('result')">Result 기준</button>
+    </div>
+    <button class="btn btn-gray" style="width:100%;padding:10px;font-size:13px;margin-top:4px;" onclick="closeAnalysisTargetModal()">취소</button>
   </div>
 </div>
 
@@ -1206,10 +1260,8 @@ function buildCard(row, dilemma) {
   body.className = 'card-body';
   const dm = DILEMMA_MAP[dilemma];
 
-  // Response-1
-  body.appendChild(makeRespRow('Response-1', getCellVal(row, dm.r1)));
-  // Response-2
-  body.appendChild(makeRespRow('Response-2', getCellVal(row, dm.r2)));
+  // Response-1 & Response-2 with Analysis Result box
+  body.appendChild(makeRespWrapper(row, dilemma, dm));
 
   // 1st_Analysis + result text display
   body.appendChild(makeAnalysisRow('1st_Analysis', row, dilemma, 'analysis1', dm.analysis1, 'text', 'analysis1Result', dm.analysis1Result));
@@ -1224,18 +1276,78 @@ function buildCard(row, dilemma) {
   return card;
 }
 
-// ── Response 행 ──
-function makeRespRow(label, text) {
-  const div = document.createElement('div');
-  div.className = 'resp-row';
-  const lbl = document.createElement('div');
-  lbl.className = 'resp-label-side';
-  lbl.textContent = label;
-  const txt = document.createElement('div');
-  txt.className = 'resp-text';
-  txt.textContent = text;
-  div.append(lbl, txt);
-  return div;
+// ── Response 영역 (Response-1 + Response-2 + Analysis Result) ──
+function makeRespWrapper(row, dilemma, dm) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'resp-wrapper';
+
+  // Left: Response rows
+  const leftCol = document.createElement('div');
+  leftCol.className = 'resp-left-col';
+
+  // Response-1
+  const row1 = document.createElement('div');
+  row1.className = 'resp-row-inner';
+  const lbl1 = document.createElement('div');
+  lbl1.className = 'resp-label-side';
+  lbl1.textContent = 'Response-1';
+  const txt1 = document.createElement('div');
+  txt1.className = 'resp-text';
+  txt1.textContent = getCellVal(row, dm.r1);
+  row1.append(lbl1, txt1);
+
+  // Response-2
+  const row2 = document.createElement('div');
+  row2.className = 'resp-row-inner';
+  const lbl2 = document.createElement('div');
+  lbl2.className = 'resp-label-side';
+  lbl2.textContent = 'Response-2';
+  const txt2 = document.createElement('div');
+  txt2.className = 'resp-text';
+  txt2.textContent = getCellVal(row, dm.r2);
+  row2.append(lbl2, txt2);
+
+  leftCol.append(row1, row2);
+
+  // Right: Analysis Result box (spans both rows)
+  const rightCol = document.createElement('div');
+  rightCol.className = 'resp-right-col';
+
+  const descDiv = document.createElement('div');
+  descDiv.className = 'resp-desc-box';
+  descDiv.dataset.rownum = row.rowNum;
+  descDiv.dataset.dilemma = dilemma;
+
+  const legend = document.createElement('span');
+  legend.className = 'resp-desc-legend';
+  legend.textContent = 'Analysis Result';
+  descDiv.appendChild(legend);
+
+  const descText = document.createElement('span');
+  descText.className = 'resp-desc-text';
+  const resultVal = getCellVal(row, dm.result);
+  if (resultVal) {
+    const desc = getCodeDesc(resultVal, parseInt(dilemma));
+    descText.textContent = desc || '';
+  } else {
+    descText.textContent = '분석 중...';
+    descText.style.color = '#94a3b8';
+    descText.style.fontStyle = 'italic';
+  }
+  descDiv.appendChild(descText);
+
+  // Code label (e.g. "(Schema-B)")
+  const codeLabel = document.createElement('span');
+  codeLabel.className = 'resp-desc-code';
+  if (resultVal) {
+    codeLabel.textContent = resultVal;
+  }
+  descDiv.appendChild(codeLabel);
+
+  rightCol.appendChild(descDiv);
+
+  wrapper.append(leftCol, rightCol);
+  return wrapper;
 }
 
 // ── Analysis 행 (textarea + button/dropdown) ──
@@ -1297,7 +1409,14 @@ function makeAnalysisRow(label, row, dilemma, textField, textColIdx, rightType, 
       if (cd.code === currentVal) opt.selected = true;
       sel.appendChild(opt);
     });
-    if (currentVal && !codeTabData.some(cd => cd.code === currentVal)) {
+    // Result 드롭다운에 "논의 필요" 옵션 추가
+    if (resultField === 'result' && !codeTabData.some(cd => cd.code === '논의 필요')) {
+      const discussOpt = document.createElement('option');
+      discussOpt.value = '논의 필요'; discussOpt.textContent = '논의 필요';
+      if (currentVal === '논의 필요') discussOpt.selected = true;
+      sel.appendChild(discussOpt);
+    }
+    if (currentVal && currentVal !== '논의 필요' && !codeTabData.some(cd => cd.code === currentVal)) {
       const opt = document.createElement('option');
       opt.value = currentVal; opt.textContent = currentVal; opt.selected = true;
       sel.appendChild(opt);
@@ -1308,13 +1427,42 @@ function makeAnalysisRow(label, row, dilemma, textField, textColIdx, rightType, 
     if (resultField === 'analysis2Result' || resultField === 'analysis3Result') {
       sel.addEventListener('change', () => syncResultDropdown(row.rowNum, dilemma));
     }
+    // Result 드롭다운 변경 시 설명 업데이트
+    if (resultField === 'result') {
+      sel.addEventListener('change', () => updateResultDesc(row.rowNum, dilemma));
+    }
   }
 
   rowDiv.append(lbl, ta, rightCtrl);
   return rowDiv;
 }
 
-// ── 2nd/3rd Analysis 일치 시 Result 자동 선택 ──
+// ── Result 설명 업데이트 ──
+function updateResultDesc(rowNum, dilemma) {
+  const card = document.querySelector('.card[data-rownum="' + rowNum + '"]');
+  if (!card) return;
+  const selR = card.querySelector('select.editable-field[data-field="result"][data-dilemma="' + dilemma + '"]');
+  if (!selR) return;
+  const val = selR.value;
+  const descBox = card.querySelector('.resp-desc-box[data-rownum="' + rowNum + '"][data-dilemma="' + dilemma + '"]');
+  if (!descBox) return;
+  const descText = descBox.querySelector('.resp-desc-text');
+  const codeLabel = descBox.querySelector('.resp-desc-code');
+  if (descText) {
+    if (val) {
+      descText.textContent = getCodeDesc(val, parseInt(dilemma)) || '';
+      descText.style.color = ''; descText.style.fontStyle = '';
+    } else {
+      descText.textContent = '분석 중...';
+      descText.style.color = '#94a3b8'; descText.style.fontStyle = 'italic';
+    }
+  }
+  if (codeLabel) {
+    codeLabel.textContent = val || '';
+  }
+}
+
+// ── 2nd/3rd Analysis 결과에 따라 Result 자동 선택 ──
 function syncResultDropdown(rowNum, dilemma) {
   const card = document.querySelector('.card[data-rownum="' + rowNum + '"]');
   if (!card) return;
@@ -1325,7 +1473,15 @@ function syncResultDropdown(rowNum, dilemma) {
   const v2 = sel2.value, v3 = sel3.value;
   if (v2 && v3 && v2 === v3) {
     selR.value = v2;
+  } else if (v2 && v3 && v2 !== v3) {
+    if (!selR.querySelector('option[value="논의 필요"]')) {
+      const opt = document.createElement('option');
+      opt.value = '논의 필요'; opt.textContent = '논의 필요';
+      selR.appendChild(opt);
+    }
+    selR.value = '논의 필요';
   }
+  updateResultDesc(rowNum, dilemma);
 }
 
 // ── 저장 ──
@@ -1571,15 +1727,15 @@ function renderModalBody(row, editMode) {
         </div>
         <div class="modal-resp-row">
           <span class="modal-resp-label">2nd_Analysis</span>${makeEditTA('analysis2', a2)}
-          <div class="modal-resp-result">${makeEditSelect('analysis2Result', a2r)}</div>
+          <div class="modal-resp-result${editMode ? ' edit-mode' : ''}">${makeEditSelect('analysis2Result', a2r)}</div>
         </div>
         <div class="modal-resp-row">
           <span class="modal-resp-label">3rd_Analysis</span>${makeEditTA('analysis3', a3)}
-          <div class="modal-resp-result">${makeEditSelect('analysis3Result', a3r)}</div>
+          <div class="modal-resp-result${editMode ? ' edit-mode' : ''}">${makeEditSelect('analysis3Result', a3r)}</div>
         </div>
         <div class="modal-resp-row">
           <span class="modal-resp-label">Result</span>${makeEditTA('resultReason', rr)}
-          <div class="modal-resp-result">${makeEditSelect('result', res)}</div>
+          <div class="modal-resp-result${editMode ? ' edit-mode' : ''}">${makeEditSelect('result', res)}</div>
         </div>
       </div>`;
     body.appendChild(section);
@@ -1688,11 +1844,34 @@ function makeDraggable(headerEl, boxEl) {
 // ── 분석 모달 ──
 function closeAnalysis() { document.getElementById('analysisOverlay').classList.remove('show'); document.body.style.overflow = ''; }
 
-async function openCombinedAnalysis() {
+// 분석 대상 선택 모달
+function showAnalysisTargetModal() {
+  guardCheckUnsaved(() => {
+    document.getElementById('analysisTargetOverlay').classList.add('show');
+  }, 'analysis');
+}
+function closeAnalysisTargetModal() {
+  document.getElementById('analysisTargetOverlay').classList.remove('show');
+}
+function runAnalysisWithTarget(targetField) {
+  closeAnalysisTargetModal();
+  openCombinedAnalysis(targetField);
+}
+
+async function openCombinedAnalysis(targetField) {
+  targetField = targetField || 'result';
+  const TARGET_LABELS = {
+    'analysis1Result': '1st_Analysis_Result',
+    'analysis2Result': '2nd_Analysis_Result',
+    'analysis3Result': '3rd_Analysis_Result',
+    'result': 'Result'
+  };
+  const targetLabel = TARGET_LABELS[targetField] || 'Result';
+
   const dil = document.getElementById('selDilemma').value;
   const dm = DILEMMA_MAP[dil];
   document.getElementById('analysisTitle').textContent = '통합 분석';
-  document.getElementById('analysisSubtitle').textContent = 'Dilemma-0' + dil + ' 기준';
+  document.getElementById('analysisSubtitle').textContent = 'Dilemma-0' + dil + ' · ' + targetLabel + ' 기준';
   const body = document.getElementById('analysisBody');
   body.innerHTML = '<div class="analysis-loading"><div class="dynamic-spinner"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div></div><div class="loading-text">데이터 분석 중...</div></div>';
   document.getElementById('analysisOverlay').classList.add('show');
@@ -1718,19 +1897,44 @@ async function openCombinedAnalysis() {
   const masterWrap = document.createElement('div');
   masterWrap.className = 'analysis-charts';
 
-  // ── Result 기준 분석 ──
-  const groupLabel = 'Result';
+  // ── 선택된 기준으로 분석 ──
+  const targetColIdx = dm[targetField];
   const groups = {};
   allData.forEach(r => {
-    const res = getCellVal(r, dm.result);
+    const res = getCellVal(r, targetColIdx);
     if (!res) return;
-    if (!groups[res]) groups[res] = { count: 0, n2: [], p: [], age: [], gender: {}, aie: {} };
+    if (!groups[res]) groups[res] = { count: 0, n2: [], p: [], age: [], gender: {}, aie: {}, choice: {}, schema: {} };
     groups[res].count++;
     const n2 = parseFloat(r.B); if (!isNaN(n2)) groups[res].n2.push(n2);
     const p = parseFloat(r.C); if (!isNaN(p)) groups[res].p.push(p);
     const age = parseFloat(r.D); if (!isNaN(age)) groups[res].age.push(age);
     const g = (r.E || '').trim(); if (g) groups[res].gender[g] = (groups[res].gender[g] || 0) + 1;
     const a = (r.F || '').trim(); if (a) groups[res].aie[a] = (groups[res].aie[a] || 0) + 1;
+
+    // 응답자의 선택 (1 또는 2) 분석 - 1st_Analysis 값에서 추출
+    const a1Val = getCellVal(r, dm.analysis1);
+    let choiceVal = '-';
+    if (a1Val) {
+      const choiceMatch = a1Val.match(/^[12]$/);
+      if (choiceMatch) choiceVal = choiceMatch[0];
+      else if (a1Val.includes('1')) choiceVal = '1';
+      else if (a1Val.includes('2')) choiceVal = '2';
+    }
+    // Response-1, Response-2 중 어떤 것을 선택했는지 직접 판단
+    const r1 = getCellVal(r, dm.r1);
+    const r2 = getCellVal(r, dm.r2);
+    if (r1 && r2) {
+      if (a1Val === '1' || a1Val === '2') choiceVal = a1Val;
+    }
+    groups[res].choice[choiceVal] = (groups[res].choice[choiceVal] || 0) + 1;
+
+    // 도식(판단 도식) 분석 - 각 분석 결과 코드를 도식으로 사용
+    const schemaCode = getCellVal(r, targetColIdx);
+    if (schemaCode) {
+      const desc = getCodeDesc(schemaCode, parseInt(dil));
+      const schemaKey = schemaCode + (desc ? ' (' + desc + ')' : '');
+      groups[res].schema[schemaKey] = (groups[res].schema[schemaKey] || 0) + 1;
+    }
   });
 
   const labels = Object.keys(groups).sort();
@@ -1738,27 +1942,121 @@ async function openCombinedAnalysis() {
   if (labels.length > 0) {
     const sectionTitle = document.createElement('div');
     sectionTitle.style.cssText = 'font-size:16px;font-weight:700;color:#1e293b;padding:8px 0 4px;border-bottom:3px solid #3b82f6;margin-bottom:8px;';
-    sectionTitle.textContent = '📊 Result 기준 분석 (Dilemma-0' + dil + ')';
+    sectionTitle.textContent = '📊 ' + targetLabel + ' 기준 분석 (Dilemma-0' + dil + ')';
     masterWrap.appendChild(sectionTitle);
 
     // Summary table
     const sumSec = document.createElement('div');
     sumSec.className = 'analysis-summary';
-    let tbl = '<table><thead><tr><th>No.</th><th>Result</th><th>빈도</th><th>N2 평균</th><th>P% 평균</th><th>Age 평균</th></tr></thead><tbody>';
+    let tbl = '<table><thead><tr><th>No.</th><th>' + escHtml(targetLabel) + '</th><th>도식 설명</th><th>빈도</th><th>N2 평균</th><th>P% 평균</th><th>Age 평균</th><th>선택1</th><th>선택2</th></tr></thead><tbody>';
     labels.forEach((k, idx) => {
       const g = groups[k];
       const n2Avg = g.n2.length ? (g.n2.reduce((a,b)=>a+b,0)/g.n2.length).toFixed(2) : '-';
       const pAvg = g.p.length ? (g.p.reduce((a,b)=>a+b,0)/g.p.length).toFixed(2) : '-';
       const ageAvg = g.age.length ? (g.age.reduce((a,b)=>a+b,0)/g.age.length).toFixed(1) : '-';
-      tbl += '<tr><td style="font-weight:600">' + (idx+1) + '</td><td style="font-weight:600;color:#1e293b">' + escHtml(k) + '</td><td>' + g.count + '</td><td>' + n2Avg + '</td><td>' + pAvg + '</td><td>' + ageAvg + '</td></tr>';
+      const desc = getCodeDesc(k, parseInt(dil));
+      const choice1 = g.choice['1'] || 0;
+      const choice2 = g.choice['2'] || 0;
+      tbl += '<tr><td style="font-weight:600">' + (idx+1) + '</td><td style="font-weight:600;color:#1e293b">' + escHtml(k) + '</td><td style="font-size:11px;color:#64748b;text-align:left;max-width:200px;word-break:break-word;">' + escHtml(desc) + '</td><td>' + g.count + '</td><td>' + n2Avg + '</td><td>' + pAvg + '</td><td>' + ageAvg + '</td><td>' + choice1 + '</td><td>' + choice2 + '</td></tr>';
     });
     tbl += '</tbody></table>';
     sumSec.innerHTML = tbl;
     masterWrap.appendChild(sumSec);
+
+    // ── 도식과 선택 관계 분석 차트 ──
+    const choiceSec = document.createElement('div');
+    choiceSec.className = 'analysis-chart-section';
+    choiceSec.style.marginTop = '24px';
+    const choiceTitle = document.createElement('div');
+    choiceTitle.className = 'analysis-chart-title';
+    choiceTitle.textContent = '📋 도식별 응답자 선택(1/2) 분포';
+    choiceSec.appendChild(choiceTitle);
+
+    const choiceWrap = document.createElement('div');
+    choiceWrap.className = 'analysis-chart-wrap';
+    let choiceTbl = '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+    choiceTbl += '<thead><tr style="background:#1e293b;color:#fff;"><th style="padding:6px 10px;text-align:center;font-size:12px;">도식 (Code)</th><th style="padding:6px 10px;text-align:center;font-size:12px;">도식 설명</th><th style="padding:6px 10px;text-align:center;font-size:12px;">선택 1</th><th style="padding:6px 10px;text-align:center;font-size:12px;">선택 2</th><th style="padding:6px 10px;text-align:center;font-size:12px;">기타</th><th style="padding:6px 10px;text-align:center;font-size:12px;">합계</th><th style="padding:6px 10px;text-align:center;font-size:12px;">선택 분포</th></tr></thead><tbody>';
+    labels.forEach(k => {
+      const g = groups[k];
+      const c1 = g.choice['1'] || 0;
+      const c2 = g.choice['2'] || 0;
+      const cOther = g.count - c1 - c2;
+      const total = g.count;
+      const pct1 = total > 0 ? Math.round(c1 / total * 100) : 0;
+      const pct2 = total > 0 ? Math.round(c2 / total * 100) : 0;
+      const pctO = 100 - pct1 - pct2;
+      const desc = getCodeDesc(k, parseInt(dil));
+      const barHtml = '<div style="display:flex;height:20px;border-radius:4px;overflow:hidden;min-width:120px;background:#e2e8f0;">' +
+        (pct1 > 0 ? '<div style="width:' + pct1 + '%;background:#3b82f6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;">' + (pct1 >= 10 ? pct1 + '%' : '') + '</div>' : '') +
+        (pct2 > 0 ? '<div style="width:' + pct2 + '%;background:#f59e0b;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;">' + (pct2 >= 10 ? pct2 + '%' : '') + '</div>' : '') +
+        (pctO > 0 ? '<div style="width:' + pctO + '%;background:#94a3b8;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;">' + (pctO >= 10 ? pctO + '%' : '') + '</div>' : '') +
+        '</div>';
+      choiceTbl += '<tr><td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:600;color:#1e293b;">' + escHtml(k) + '</td><td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;text-align:left;font-size:11px;color:#64748b;max-width:180px;word-break:break-word;">' + escHtml(desc) + '</td><td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;text-align:center;color:#3b82f6;font-weight:600;">' + c1 + '</td><td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;text-align:center;color:#f59e0b;font-weight:600;">' + c2 + '</td><td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;text-align:center;color:#94a3b8;">' + cOther + '</td><td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:600;">' + total + '</td><td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;">' + barHtml + '</td></tr>';
+    });
+    choiceTbl += '</tbody></table>';
+    choiceTbl += '<div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:#64748b;"><span><span style="display:inline-block;width:12px;height:12px;background:#3b82f6;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>선택 1</span><span><span style="display:inline-block;width:12px;height:12px;background:#f59e0b;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>선택 2</span><span><span style="display:inline-block;width:12px;height:12px;background:#94a3b8;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>기타</span></div>';
+    choiceWrap.innerHTML = choiceTbl;
+    choiceSec.appendChild(choiceWrap);
+    masterWrap.appendChild(choiceSec);
+
+    // ── Gender 분포 ──
+    const genderSec = document.createElement('div');
+    genderSec.className = 'analysis-chart-section';
+    genderSec.style.marginTop = '24px';
+    const genderTitle = document.createElement('div');
+    genderTitle.className = 'analysis-chart-title';
+    genderTitle.textContent = '👥 도식별 성별 분포';
+    genderSec.appendChild(genderTitle);
+
+    const genderWrap = document.createElement('div');
+    genderWrap.className = 'analysis-chart-wrap';
+    const allGenders = new Set();
+    labels.forEach(k => Object.keys(groups[k].gender).forEach(g => allGenders.add(g)));
+    const genderArr = Array.from(allGenders).sort();
+    let gTbl = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#1e293b;color:#fff;"><th style="padding:6px 10px;font-size:12px;">' + escHtml(targetLabel) + '</th>';
+    genderArr.forEach(g => { gTbl += '<th style="padding:6px 10px;font-size:12px;">' + escHtml(g) + '</th>'; });
+    gTbl += '</tr></thead><tbody>';
+    labels.forEach(k => {
+      gTbl += '<tr><td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:600;">' + escHtml(k) + '</td>';
+      genderArr.forEach(g => { gTbl += '<td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;text-align:center;">' + (groups[k].gender[g] || 0) + '</td>'; });
+      gTbl += '</tr>';
+    });
+    gTbl += '</tbody></table>';
+    genderWrap.innerHTML = gTbl;
+    genderSec.appendChild(genderWrap);
+    masterWrap.appendChild(genderSec);
+
+    // ── AIE_exp 분포 ──
+    const aieSec = document.createElement('div');
+    aieSec.className = 'analysis-chart-section';
+    aieSec.style.marginTop = '24px';
+    const aieTitle = document.createElement('div');
+    aieTitle.className = 'analysis-chart-title';
+    aieTitle.textContent = '🤖 도식별 AIE_exp 분포';
+    aieSec.appendChild(aieTitle);
+
+    const aieWrap = document.createElement('div');
+    aieWrap.className = 'analysis-chart-wrap';
+    const allAie = new Set();
+    labels.forEach(k => Object.keys(groups[k].aie).forEach(a => allAie.add(a)));
+    const aieArr = Array.from(allAie).sort();
+    let aTbl = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#1e293b;color:#fff;"><th style="padding:6px 10px;font-size:12px;">' + escHtml(targetLabel) + '</th>';
+    aieArr.forEach(a => { aTbl += '<th style="padding:6px 10px;font-size:12px;">' + escHtml(a) + '</th>'; });
+    aTbl += '</tr></thead><tbody>';
+    labels.forEach(k => {
+      aTbl += '<tr><td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:600;">' + escHtml(k) + '</td>';
+      aieArr.forEach(a => { aTbl += '<td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;text-align:center;">' + (groups[k].aie[a] || 0) + '</td>'; });
+      aTbl += '</tr>';
+    });
+    aTbl += '</tbody></table>';
+    aieWrap.innerHTML = aTbl;
+    aieSec.appendChild(aieWrap);
+    masterWrap.appendChild(aieSec);
+
   } else {
     const noData = document.createElement('div');
     noData.style.cssText = 'text-align:center;padding:20px;color:#999;';
-    noData.textContent = 'Result 데이터가 없습니다.';
+    noData.textContent = targetLabel + ' 데이터가 없습니다.';
     masterWrap.appendChild(noData);
   }
 
