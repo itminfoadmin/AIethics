@@ -1528,12 +1528,14 @@ async function saveAll() {
         if (matchRow && matchRow.raw && u.colIdx < matchRow.raw.length) matchRow.raw[u.colIdx] = u.value;
       });
       showToast('저장 완료: ' + updates.length + '건 변경');
+      showLoading(true, '저장된 데이터를 불러오는 중...');
+      setTimeout(() => { location.reload(); }, 500);
     } else throw new Error(json.message);
   } catch(err) {
     console.error(err);
     showToast('저장 실패: ' + err.message, true);
   } finally {
-    showLoading(false);
+    // 저장 성공 시 reload 전까지 로딩 유지
   }
 }
 
