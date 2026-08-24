@@ -32,6 +32,10 @@ body {
 .title-right-controls {
   display:flex; align-items:center; gap:6px; margin-left:auto;
 }
+.title-right-controls .btn {
+  padding:5px 10px !important; font-size:13px !important; min-height:0 !important;
+  line-height:1.38; box-sizing:border-box;
+}
 .btn-sm { padding:4px 10px !important; font-size:11px !important; min-height:0 !important; }
 
 .topbar {
@@ -655,8 +659,8 @@ body {
             <span class="toggle-slider"></span>
           </label>
         </div>
-        <button class="btn btn-dark btn-sm" onclick="guardCheckUnsaved(openSchemeManager, 'codeManager')">Code 보기</button>
-        <button class="btn btn-dark btn-sm" onclick="openDocsModal()">Dilemma 보기</button>
+        <button class="btn btn-dark" onclick="guardCheckUnsaved(openSchemeManager, 'codeManager')">Code 보기</button>
+        <button class="btn btn-dark" onclick="openDocsModal()">Dilemma 보기</button>
         <button class="btn btn-dark" onclick="showExitConfirm()">종료</button>
       </div>
     </div>
@@ -670,8 +674,11 @@ body {
           <option value="3">Dilemma-03</option>
           <option value="4">Dilemma-04</option>
         </select>
+        <select id="selAnalysis1">
+          <option value="전체">1st_Analysis Filter</option>
+        </select>
         <select id="selResult">
-          <option value="전체">Result Filter</option>
+          <option value="전체">Analysis Result Filter</option>
         </select>
         <select id="selSort">
           <option value="" disabled selected hidden>정렬</option>
@@ -1091,10 +1098,18 @@ function hideErrorModal() { document.getElementById('errorModalOverlay').classLi
 async function retryLoadFromErrorModal() { hideErrorModal(); await loadData(); }
 
 // ── 필터 드롭다운 ──
+function _sortWithIRDLast(arr) {
+  const irdRe = /^IRD-?\d/i;
+  const irdItems = arr.filter(v => irdRe.test(v)).sort();
+  const others = arr.filter(v => !irdRe.test(v)).sort();
+  return [...others, ...irdItems];
+}
+
 function populateFilterDropdowns() {
   const dil = document.getElementById('selDilemma').value;
   const dm = DILEMMA_MAP[dil];
 
+  // Result filter
   const resultSet = new Set();
   allData.forEach(r => {
     const res = getCellVal(r, dm.result);
@@ -1104,28 +1119,55 @@ function populateFilterDropdowns() {
   const prev = sel.value;
   sel.innerHTML = '';
   const def = document.createElement('option');
-  def.value = '전체'; def.textContent = 'Result Filter'; def.disabled = true; def.hidden = true;
+  def.value = '전체'; def.textContent = 'Analysis Result Filter'; def.disabled = true; def.hidden = true;
   sel.appendChild(def);
   const allOpt = document.createElement('option');
   allOpt.value = '전체'; allOpt.textContent = '전체 (All)';
   sel.appendChild(allOpt);
-  Array.from(resultSet).sort().forEach(v => {
+  _sortWithIRDLast(Array.from(resultSet)).forEach(v => {
     const opt = document.createElement('option');
     opt.value = v; opt.textContent = v;
     sel.appendChild(opt);
   });
   if (Array.from(sel.options).some(o => o.value === prev)) sel.value = prev;
   else sel.value = '전체';
+
+  // 1st_Analysis filter
+  const a1Set = new Set();
+  allData.forEach(r => {
+    const val = getCellVal(r, dm.analysis1Result);
+    if (val) a1Set.add(val);
+  });
+  const selA1 = document.getElementById('selAnalysis1');
+  const prevA1 = selA1.value;
+  selA1.innerHTML = '';
+  const defA1 = document.createElement('option');
+  defA1.value = '전체'; defA1.textContent = '1st_Analysis Filter'; defA1.disabled = true; defA1.hidden = true;
+  selA1.appendChild(defA1);
+  const allOptA1 = document.createElement('option');
+  allOptA1.value = '전체'; allOptA1.textContent = '전체 (All)';
+  selA1.appendChild(allOptA1);
+  _sortWithIRDLast(Array.from(a1Set)).forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    selA1.appendChild(opt);
+  });
+  if (Array.from(selA1.options).some(o => o.value === prevA1)) selA1.value = prevA1;
+  else selA1.value = '전체';
 }
 
 // ── 필터된 데이터 ──
 function getFilteredData() {
   const dil = document.getElementById('selDilemma').value;
   const resultFilter = document.getElementById('selResult').value;
+  const a1Filter = document.getElementById('selAnalysis1').value;
   let filtered = allData.slice();
   const dm = DILEMMA_MAP[dil];
   if (dm && resultFilter !== '전체') {
     filtered = filtered.filter(r => getCellVal(r, dm.result) === resultFilter);
+  }
+  if (dm && a1Filter !== '전체') {
+    filtered = filtered.filter(r => getCellVal(r, dm.analysis1Result) === a1Filter);
   }
   return filtered;
 }
@@ -1564,7 +1606,7 @@ let _guardPrevValues = {};
 function guardCheckUnsaved(actionFn, source) {
   const unsaved = getUnsavedChanges();
   if (unsaved.length === 0) { actionFn(); return; }
-  _guardPrevValues = { dilemma: document.getElementById('selDilemma').value, result: document.getElementById('selResult').value };
+  _guardPrevValues = { dilemma: document.getElementById('selDilemma').value, result: document.getElementById('selResult').value, analysis1: document.getElementById('selAnalysis1').value };
   _guardPendingAction = actionFn;
   document.getElementById('guardModalMsg').textContent = '저장되지 않은 변경사항이 ' + unsaved.length + '건 있습니다.\n저장하고 진행하시겠습니까?';
   document.getElementById('guardModalOverlay').classList.add('show');
@@ -1617,6 +1659,7 @@ function guardCancel() {
   if (_guardPrevValues.dilemma !== undefined) {
     document.getElementById('selDilemma').value = _guardPrevValues.dilemma;
     document.getElementById('selResult').value = _guardPrevValues.result;
+    document.getElementById('selAnalysis1').value = _guardPrevValues.analysis1 || '전체';
   }
   _guardPendingAction = null;
 }
@@ -1634,10 +1677,13 @@ function guardResetModalUI() {
 
 // ── 드롭다운 이벤트 ──
 document.getElementById('selDilemma').addEventListener('change', () => {
-  guardCheckUnsaved(() => { document.getElementById('selResult').value = '전체'; renderCards(); window.scrollTo({top:0,behavior:'smooth'}); }, 'dilemma');
+  guardCheckUnsaved(() => { document.getElementById('selResult').value = '전체'; document.getElementById('selAnalysis1').value = '전체'; renderCards(); window.scrollTo({top:0,behavior:'smooth'}); }, 'dilemma');
 });
 document.getElementById('selResult').addEventListener('change', () => {
   guardCheckUnsaved(() => { renderCards(); window.scrollTo({top:0,behavior:'smooth'}); }, 'result');
+});
+document.getElementById('selAnalysis1').addEventListener('change', () => {
+  guardCheckUnsaved(() => { renderCards(); window.scrollTo({top:0,behavior:'smooth'}); }, 'analysis1');
 });
 document.getElementById('selSort').addEventListener('change', function() {
   if (this.value === 'cancel') { currentSortKey = ''; this.selectedIndex = 0; }
@@ -1748,6 +1794,28 @@ function renderModalBody(row, editMode) {
       const autoResize = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
       ta.addEventListener('input', autoResize);
       setTimeout(autoResize, 0);
+    });
+    // Modal에서도 2nd/3rd Analysis 결과 변경 시 Result 자동 동기화
+    body.querySelectorAll('select.modal-edit-field[data-field="analysis2Result"], select.modal-edit-field[data-field="analysis3Result"]').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const dil = sel.dataset.dilemma;
+        const rn = sel.dataset.rownum;
+        const sel2 = body.querySelector('select.modal-edit-field[data-field="analysis2Result"][data-dilemma="' + dil + '"]');
+        const sel3 = body.querySelector('select.modal-edit-field[data-field="analysis3Result"][data-dilemma="' + dil + '"]');
+        const selR = body.querySelector('select.modal-edit-field[data-field="result"][data-dilemma="' + dil + '"]');
+        if (!sel2 || !sel3 || !selR) return;
+        const v2 = sel2.value, v3 = sel3.value;
+        if (v2 && v3 && v2 === v3) {
+          selR.value = v2;
+        } else if (v2 && v3 && v2 !== v3) {
+          if (!selR.querySelector('option[value="논의 필요"]')) {
+            const opt = document.createElement('option');
+            opt.value = '논의 필요'; opt.textContent = '논의 필요';
+            selR.appendChild(opt);
+          }
+          selR.value = '논의 필요';
+        }
+      });
     });
   }
 }
@@ -2120,15 +2188,21 @@ async function openCombinedAnalysis(targetField) {
       masterWrap.appendChild(choiceSumSec);
     }
 
-    // Scheme Combination 분석
-    if (schemeLabels.length > 0) {
-      const n2combDiv = buildCombinationSection('N2', schemeLabels, groups, 'n2', dilNum, pendingScheme);
+    // Combination 분석 (IRD 제외)
+    const nonIRDLabels = labels.filter(k => !/^IRD/i.test(k));
+    if (nonIRDLabels.length > 1) {
+      const n2combDiv = buildCombinationSection('N2', nonIRDLabels, groups, 'n2', dilNum, pendingScheme);
       n2combDiv.classList.add('analysis-print-page-break');
       masterWrap.appendChild(n2combDiv);
 
-      const pCombDiv = buildCombinationSection('P%', schemeLabels, groups, 'p', dilNum, pendingScheme);
+      const pCombDiv = buildCombinationSection('P%', nonIRDLabels, groups, 'p', dilNum, pendingScheme);
       pCombDiv.classList.add('analysis-print-page-break');
       masterWrap.appendChild(pCombDiv);
+
+      // 선택(①/②) × Group 상관 분석
+      const choiceCombDiv = buildChoiceCombinationSection(nonIRDLabels, groups, groupIdx, dm, dilNum, allData);
+      choiceCombDiv.classList.add('analysis-print-page-break');
+      masterWrap.appendChild(choiceCombDiv);
     }
 
     // N2 Box Plot
@@ -2287,6 +2361,284 @@ async function openCombinedAnalysis(targetField) {
   });
 
   renderCards();
+}
+
+// ── Choice × Group Combination 상관 분석 ──
+function buildChoiceCombinationSection(allLabels, groups, groupIdx, dm, dilNum, allData) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'analysis-chart-section';
+  wrapper.style.cssText = 'border:2px solid #e2e8f0;border-radius:8px;padding:14px;margin-top:8px;background:#fafbfc;';
+
+  const titleText = document.createElement('div');
+  titleText.className = 'analysis-chart-title';
+  titleText.style.marginBottom = '10px';
+  titleText.textContent = '문항 선택(①/②) × Group 상관관계 분석';
+  wrapper.appendChild(titleText);
+
+  const groupUI = document.createElement('div');
+  groupUI.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:12px;padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;';
+
+  const instrText = document.createElement('div');
+  instrText.style.cssText = 'font-size:11px;color:#64748b;margin-bottom:4px;';
+  instrText.textContent = '각 Code에 그룹 번호를 지정하세요. 같은 번호의 Code가 하나로 묶여 선택(①/②)과의 상관관계를 분석합니다.';
+  groupUI.appendChild(instrText);
+
+  const selectors = [];
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;';
+
+  const colorsArr = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+
+  allLabels.forEach((k, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:4px;flex-shrink:0;';
+
+    const label = document.createElement('span');
+    label.style.cssText = 'font-size:11px;font-weight:700;color:#94a3b8;white-space:nowrap;text-decoration:line-through;';
+    label.textContent = k;
+
+    const sel = document.createElement('select');
+    sel.style.cssText = 'padding:3px 6px;font-size:12px;border:1px solid #cbd5e1;border-radius:4px;cursor:pointer;font-weight:600;';
+    sel.dataset.code = k;
+    for (let g = 1; g <= allLabels.length; g++) {
+      const opt = document.createElement('option');
+      opt.value = g; opt.textContent = 'G' + g;
+      sel.appendChild(opt);
+    }
+    const excludeOpt = document.createElement('option');
+    excludeOpt.value = 'exclude'; excludeOpt.textContent = '제외'; excludeOpt.selected = true;
+    sel.appendChild(excludeOpt);
+
+    const colorDot = document.createElement('span');
+    colorDot.style.cssText = 'width:12px;height:12px;border-radius:3px;flex-shrink:0;background:#cbd5e1;';
+
+    sel.addEventListener('change', () => {
+      if (sel.value === 'exclude') {
+        colorDot.style.background = '#cbd5e1';
+        label.style.textDecoration = 'line-through'; label.style.color = '#94a3b8';
+      } else {
+        const gIdx = parseInt(sel.value) - 1;
+        colorDot.style.background = colorsArr[gIdx % colorsArr.length];
+        label.style.textDecoration = 'none'; label.style.color = '#1e293b';
+      }
+    });
+
+    row.append(colorDot, label, sel);
+    grid.appendChild(row);
+    selectors.push(sel);
+  });
+
+  groupUI.appendChild(grid);
+
+  const presetRow = document.createElement('div');
+  presetRow.style.cssText = 'display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;';
+  const presetAll = document.createElement('button');
+  presetAll.className = 'btn btn-gray'; presetAll.style.cssText = 'padding:3px 10px;font-size:11px;';
+  presetAll.textContent = '모두 별도';
+  presetAll.onclick = () => { selectors.forEach((s,i) => { s.value = i+1; s.dispatchEvent(new Event('change')); }); };
+  const presetOne = document.createElement('button');
+  presetOne.className = 'btn btn-gray'; presetOne.style.cssText = 'padding:3px 10px;font-size:11px;';
+  presetOne.textContent = '모두 하나';
+  presetOne.onclick = () => { selectors.forEach(s => { s.value = 1; s.dispatchEvent(new Event('change')); }); };
+  const analyzeBtn = document.createElement('button');
+  analyzeBtn.className = 'btn btn-blue'; analyzeBtn.style.cssText = 'padding:5px 16px;font-size:12px;margin-left:auto;';
+  analyzeBtn.textContent = '선택 상관 분석';
+  presetRow.append(presetAll, presetOne, analyzeBtn);
+  groupUI.appendChild(presetRow);
+  wrapper.appendChild(groupUI);
+
+  const chartArea = document.createElement('div');
+  chartArea.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+  wrapper.appendChild(chartArea);
+
+  const dpr = window.devicePixelRatio || 1;
+
+  function renderChoiceCorrelation() {
+    chartArea.innerHTML = '';
+
+    const groupMap = {};
+    selectors.forEach(s => {
+      if (s.value === 'exclude') return;
+      const gNum = parseInt(s.value);
+      const code = s.dataset.code;
+      if (!groupMap[gNum]) groupMap[gNum] = [];
+      groupMap[gNum].push(code);
+    });
+
+    const sortedGroupNums = Object.keys(groupMap).map(Number).sort((a,b)=>a-b);
+    if (sortedGroupNums.length === 0) return;
+
+    // 각 그룹별 선택 빈도 집계
+    const combGroups = sortedGroupNums.map(gNum => {
+      const members = groupMap[gNum];
+      const label = members.length === 1 ? members[0] : members.join('+');
+      const shortLabel = 'G' + gNum;
+      let c1 = 0, c2 = 0, etc = 0, total = 0;
+      const n2Vals = [], pVals = [];
+      allData.forEach(r => {
+        const key = getCellVal(r, groupIdx);
+        if (!key || !members.includes(key)) return;
+        total++;
+        const r1Text = getCellVal(r, dm.r1);
+        if (r1Text.includes('①')) c1++;
+        else if (r1Text.includes('②')) c2++;
+        else etc++;
+        const n2 = parseFloat(r.B); if (!isNaN(n2)) n2Vals.push(n2);
+        const p = parseFloat(r.C); if (!isNaN(p)) pVals.push(p);
+      });
+      return { label, shortLabel, members, c1, c2, etc, total, n2Vals, pVals };
+    });
+
+    // 범례
+    const legendDiv = document.createElement('div');
+    legendDiv.style.cssText = 'margin-bottom:8px;padding:8px 12px;background:#f1f5f9;border-radius:6px;border:1px solid #e2e8f0;';
+    const legendTitle = document.createElement('div');
+    legendTitle.style.cssText = 'font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;';
+    legendTitle.textContent = '▪ 조합 그룹';
+    legendDiv.appendChild(legendTitle);
+    const legendRow = document.createElement('div');
+    legendRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;';
+    combGroups.forEach((cg, ci) => {
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:11px;color:#334155;white-space:nowrap;';
+      const dot = document.createElement('span');
+      dot.style.cssText = 'width:10px;height:10px;border-radius:2px;flex-shrink:0;background:' + colorsArr[ci % colorsArr.length] + ';';
+      const text = document.createElement('span');
+      text.innerHTML = '<b>' + escHtml(cg.shortLabel) + '</b> : ' + escHtml(cg.label) + ' (n=' + cg.total + ')';
+      item.append(dot, text);
+      legendRow.appendChild(item);
+    });
+    legendDiv.appendChild(legendRow);
+    chartArea.appendChild(legendDiv);
+
+    // ── 선택 빈도 테이블 ──
+    const tblDiv = document.createElement('div');
+    tblDiv.className = 'analysis-summary';
+    let tbl = '<table><thead><tr><th>그룹</th><th>구성</th><th>① 선택</th><th>② 선택</th><th>기타</th><th>합계</th><th>① 비율</th><th>② 비율</th><th>N2 평균</th><th>P% 평균</th></tr></thead><tbody>';
+    let totC1=0, totC2=0, totEtc=0, totAll=0;
+    combGroups.forEach(cg => {
+      totC1 += cg.c1; totC2 += cg.c2; totEtc += cg.etc; totAll += cg.total;
+      const n2Avg = cg.n2Vals.length ? (cg.n2Vals.reduce((a,b)=>a+b,0)/cg.n2Vals.length).toFixed(2) : '-';
+      const pAvg = cg.pVals.length ? (cg.pVals.reduce((a,b)=>a+b,0)/cg.pVals.length).toFixed(2) : '-';
+      tbl += '<tr><td style="font-weight:700">' + escHtml(cg.shortLabel) + '</td>';
+      tbl += '<td style="font-size:11px;color:#64748b">' + escHtml(cg.label) + '</td>';
+      tbl += '<td style="color:#3b82f6;font-weight:600">' + cg.c1 + '</td>';
+      tbl += '<td style="color:#f59e0b;font-weight:600">' + cg.c2 + '</td>';
+      tbl += '<td style="color:#94a3b8">' + cg.etc + '</td>';
+      tbl += '<td style="font-weight:600">' + cg.total + '</td>';
+      tbl += '<td style="color:#3b82f6;font-weight:600">' + (cg.total ? (cg.c1/cg.total*100).toFixed(1) : '0.0') + '%</td>';
+      tbl += '<td style="color:#f59e0b;font-weight:600">' + (cg.total ? (cg.c2/cg.total*100).toFixed(1) : '0.0') + '%</td>';
+      tbl += '<td>' + n2Avg + '</td><td>' + pAvg + '</td></tr>';
+    });
+    tbl += '<tr style="background:#f1f5f9;font-weight:600"><td colspan="2">전체</td>';
+    tbl += '<td style="color:#3b82f6">' + totC1 + '</td><td style="color:#f59e0b">' + totC2 + '</td><td>' + totEtc + '</td><td>' + totAll + '</td>';
+    tbl += '<td style="color:#3b82f6">' + (totAll ? (totC1/totAll*100).toFixed(1) : '0.0') + '%</td>';
+    tbl += '<td style="color:#f59e0b">' + (totAll ? (totC2/totAll*100).toFixed(1) : '0.0') + '%</td>';
+    tbl += '<td>-</td><td>-</td></tr>';
+    tbl += '</tbody></table>';
+    tblDiv.innerHTML = tbl;
+    chartArea.appendChild(tblDiv);
+
+    // ── 선택 빈도 시각화 (stacked bar) ──
+    const choiceBarWrap = document.createElement('div');
+    choiceBarWrap.className = 'analysis-chart-wrap';
+    choiceBarWrap.style.marginTop = '8px';
+    const choiceBarCanvas = document.createElement('canvas');
+    choiceBarCanvas.style.width = '100%'; choiceBarCanvas.style.height = '320px';
+    choiceBarWrap.appendChild(choiceBarCanvas);
+
+    const cLegendDiv = document.createElement('div');
+    cLegendDiv.style.cssText = 'margin-top:10px;display:flex;gap:20px;font-size:12px;font-weight:600;color:#334155;';
+    cLegendDiv.innerHTML = '<span><span style="display:inline-block;width:14px;height:14px;background:#3b82f6;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>①</span>' +
+      '<span><span style="display:inline-block;width:14px;height:14px;background:#f59e0b;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>②</span>' +
+      '<span><span style="display:inline-block;width:14px;height:14px;background:#94a3b8;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>기타</span>';
+    choiceBarWrap.appendChild(cLegendDiv);
+    chartArea.appendChild(choiceBarWrap);
+
+    // ── 카이제곱 검정 (선택 × 그룹 독립성) ──
+    if (combGroups.length >= 2) {
+      const corrTitle = document.createElement('div');
+      corrTitle.className = 'analysis-chart-title';
+      corrTitle.style.marginTop = '16px';
+      corrTitle.textContent = '선택(①/②) × Group 독립성 검정 (Chi-Square)';
+      chartArea.appendChild(corrTitle);
+
+      // Contingency table: rows = groups, cols = ①, ②, 기타
+      const observed = combGroups.map(cg => [cg.c1, cg.c2, cg.etc]);
+      const rowTotals = observed.map(row => row.reduce((a,b)=>a+b,0));
+      const colTotals = [0,0,0];
+      observed.forEach(row => { row.forEach((v,ci) => colTotals[ci] += v); });
+      const grand = rowTotals.reduce((a,b)=>a+b,0);
+
+      let chiSq = 0;
+      if (grand > 0) {
+        observed.forEach((row, ri) => {
+          row.forEach((obs, ci) => {
+            const exp = (rowTotals[ri] * colTotals[ci]) / grand;
+            if (exp > 0) chiSq += ((obs - exp) ** 2) / exp;
+          });
+        });
+      }
+
+      const dfChi = (combGroups.length - 1) * 2; // (rows-1) * (cols_used - 1), cols=3 -> 2
+      // Cramér's V
+      const minDim = Math.min(combGroups.length, 3) - 1;
+      const cramersV = (grand > 0 && minDim > 0) ? Math.sqrt(chiSq / (grand * minDim)) : 0;
+
+      // p-value approximation for chi-square using incomplete gamma
+      let pValueChi = 1;
+      if (dfChi > 0 && chiSq > 0) {
+        // Use upper incomplete gamma ratio approximation
+        const a = dfChi / 2, x = chiSq / 2;
+        // Series expansion for regularized lower gamma
+        let sum = 0, term = 1/a;
+        for (let i = 0; i < 200; i++) {
+          sum += term;
+          term *= x / (a + i + 1);
+          if (Math.abs(term) < 1e-12) break;
+        }
+        const lowerGamma = Math.exp(-x + a * Math.log(x) - _lnGamma(a)) * sum;
+        pValueChi = Math.max(0, Math.min(1, 1 - lowerGamma));
+      }
+
+      const sigLabel = pValueChi < 0.001 ? '***' : pValueChi < 0.01 ? '**' : pValueChi < 0.05 ? '*' : 'n.s.';
+      const sigColor = pValueChi < 0.05 ? '#dc2626' : '#64748b';
+      const vStrength = cramersV < 0.1 ? '거의 없음' : cramersV < 0.3 ? '약한' : cramersV < 0.5 ? '보통' : '강한';
+
+      const corrDiv = document.createElement('div');
+      corrDiv.className = 'analysis-summary';
+      corrDiv.innerHTML = '<table><thead><tr><th>측정</th><th>값</th><th>해석</th></tr></thead><tbody>' +
+        '<tr><td style="font-weight:600;color:#1e293b">χ² (카이제곱)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:#3b82f6">' + chiSq.toFixed(4) + '</td>' +
+        '<td style="color:#475569">df = ' + dfChi + '</td></tr>' +
+        '<tr><td style="font-weight:600;color:#1e293b">p-value</td>' +
+        '<td style="font-size:16px;font-weight:700;color:' + sigColor + '">' + _formatPValue(pValueChi) + ' <span style="font-size:13px;">' + sigLabel + '</span></td>' +
+        '<td style="color:#475569">' + (pValueChi < 0.05 ? '그룹과 선택 간 유의한 관련성 있음 (α=0.05)' : '그룹과 선택 간 유의한 관련성 없음') + '</td></tr>' +
+        '<tr><td style="font-weight:600;color:#1e293b">Cramér\'s V</td>' +
+        '<td style="font-size:16px;font-weight:700;color:' + (cramersV >= 0.1 ? '#8b5cf6' : '#64748b') + '">' + cramersV.toFixed(4) + '</td>' +
+        '<td style="color:#475569">효과 크기: ' + vStrength + '</td></tr>' +
+        '<tr><td style="font-weight:600;color:#1e293b">N (총 응답)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:#64748b">' + grand + '</td>' +
+        '<td style="color:#475569">' + combGroups.length + '개 그룹</td></tr>' +
+        '</tbody></table>' +
+        '<div style="font-size:11px;color:#94a3b8;padding:6px 10px;border-top:1px solid #e2e8f0;">유의수준: *** p&lt;0.001, ** p&lt;0.01, * p&lt;0.05, n.s. 유의하지 않음</div>';
+      chartArea.appendChild(corrDiv);
+    }
+
+    // Canvas 렌더링
+    setTimeout(() => {
+      let pw = choiceBarWrap.clientWidth - 32;
+      if (pw <= 0) pw = 600;
+      choiceBarCanvas.width = pw * dpr; choiceBarCanvas.height = 320 * dpr;
+      choiceBarCanvas.style.width = pw + 'px'; choiceBarCanvas.style.height = '320px';
+      drawChoiceFreqChart(choiceBarCanvas, combGroups.map(cg => ({
+        label: cg.shortLabel, c1: cg.c1, c2: cg.c2, etc: cg.etc, total: cg.total
+      })), dpr);
+    }, 100);
+  }
+
+  analyzeBtn.addEventListener('click', renderChoiceCorrelation);
+  return wrapper;
 }
 
 // ── Histogram 그리기 ──
@@ -3026,7 +3378,7 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
   const titleText = document.createElement('div');
   titleText.className = 'analysis-chart-title';
   titleText.style.marginBottom = '10px';
-  titleText.textContent = scoreLabel + ' Score (by Scheme Combination)';
+  titleText.textContent = scoreLabel + ' Score (by Group Combination)';
   wrapper.appendChild(titleText);
 
   const groupUI = document.createElement('div');
@@ -3180,7 +3532,7 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
 
     const dTitle = document.createElement('div');
     dTitle.className = 'analysis-chart-title';
-    dTitle.textContent = scoreLabel + ' Score 분포 (by Scheme Combination)';
+    dTitle.textContent = scoreLabel + ' Score 분포 (by Group Combination)';
     chartArea.appendChild(dTitle);
 
     const dWrap = document.createElement('div');
