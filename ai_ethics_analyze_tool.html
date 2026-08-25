@@ -281,14 +281,14 @@ body {
 }
 .resp-desc-legend {
   position:absolute; top:-10px; left:50%; transform:translateX(-50%);
-  background:#fff; padding:0 10px; font-size:13px; font-weight:700;
+  background:#fff; padding:0 10px; font-size:14.5px; font-weight:700;
   color:#ef4444; letter-spacing:.3px; white-space:nowrap;
 }
 .resp-desc-text {
-  line-height:1.5;
+  line-height:1.5; font-size:12px;
 }
 .resp-desc-code {
-  font-size:10.4px; font-weight:600; color:#94a3b8; margin-top:4px;
+  font-size:11.5px; font-weight:600; color:#94a3b8; margin-top:4px;
   line-height:1.3;
 }
 
@@ -321,6 +321,17 @@ body {
 }
 .analysis-row .row-right-ctrl select:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,.12); }
 .analysis-row .row-right-ctrl select.result-select { border-color:#8b5cf6; }
+.analysis-row .row-right-ctrl select.auto-synced {
+  border-color:#6b7280 !important;
+  background:#f3f4f6 !important;
+  color:#6b7280;
+  cursor:not-allowed;
+  opacity:.85;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  appearance:none;
+  background-image:none !important;
+}
 
 .analysis-row .row-result-text {
   width:100%; padding:8px 10px; border:1px solid #e2e8f0; border-radius:5px;
@@ -385,6 +396,17 @@ body {
   height:36px;
 }
 .modal-assessment-select:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
+.modal-assessment-select.auto-synced {
+  border-color:#6b7280 !important;
+  background:#f3f4f6 !important;
+  color:#6b7280;
+  cursor:not-allowed;
+  opacity:.85;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  appearance:none;
+  background-image:none !important;
+}
 .modal-resp-result.edit-mode {
   align-self:flex-start;
   justify-content:flex-start;
@@ -810,7 +832,8 @@ body {
         <button class="btn btn-green btn-sm" onclick="saveAll()">저장</button>
         <button class="btn btn-red btn-sm" onclick="printSummarySheet()">원본 시트</button>
         <button class="btn btn-blue btn-sm" onclick="showAnalysisTargetModal()">자료 분석</button>
-        <button class="btn btn-sm" onclick="guardCheckUnsaved(printCards, 'print')" style="background:#7c3aed;color:#fff;">인쇄</button>
+        <button class="btn btn-sm" onclick="guardCheckUnsaved(printDataset, 'print')" style="background:#0891b2;color:#fff;">Dataset 인쇄</button>
+        <button class="btn btn-sm" onclick="guardCheckUnsaved(printCards, 'print')" style="background:#7c3aed;color:#fff;">결과 인쇄</button>
       </div>
     </div>
   </div>
@@ -1497,6 +1520,12 @@ function renderCards() {
       if (!isNaN(rowNum)) trackLastEdited(rowNum);
     });
   });
+
+  // 초기 렌더링 시 2nd/3rd 일치 여부에 따른 Result 스타일 적용
+  const currentDil = document.getElementById('selDilemma').value;
+  container.querySelectorAll('.card').forEach(card => {
+    checkInitialSyncStyle(card, currentDil);
+  });
 }
 
 // ── 개별 카드 생성 ──
@@ -1718,9 +1747,22 @@ function makeAnalysisRow(label, row, dilemma, textField, textColIdx, rightType, 
     if (resultField === 'analysis2Result' || resultField === 'analysis3Result') {
       sel.addEventListener('change', () => syncResultDropdown(row.rowNum, dilemma));
     }
-    // Result 드롭다운 변경 시 설명 업데이트
+    // Result 드롭다운 변경 시 설명 업데이트 + 수동 변경 시 자동동기화 스타일 해제
     if (resultField === 'result') {
-      sel.addEventListener('change', () => updateResultDesc(row.rowNum, dilemma));
+      sel.addEventListener('change', () => {
+        updateResultDesc(row.rowNum, dilemma);
+        // 수동 변경인지 확인: 2nd/3rd와 다른 값을 선택하면 스타일 해제
+        const card = sel.closest('.card');
+        if (card) {
+          const sel2 = card.querySelector('select.editable-field[data-field="analysis2Result"][data-dilemma="' + dilemma + '"]');
+          const sel3 = card.querySelector('select.editable-field[data-field="analysis3Result"][data-dilemma="' + dilemma + '"]');
+          if (sel2 && sel3 && sel2.value && sel3.value && sel2.value === sel3.value && sel.value === sel2.value) {
+            applyAutoSyncStyle(sel, true);
+          } else {
+            applyAutoSyncStyle(sel, false);
+          }
+        }
+      });
     }
   }
 
@@ -1764,6 +1806,7 @@ function syncResultDropdown(rowNum, dilemma) {
   const v2 = sel2.value, v3 = sel3.value;
   if (v2 && v3 && v2 === v3) {
     selR.value = v2;
+    applyAutoSyncStyle(selR, true);
   } else if (v2 && v3 && v2 !== v3) {
     if (!selR.querySelector('option[value="논의 필요"]')) {
       const opt = document.createElement('option');
@@ -1771,8 +1814,32 @@ function syncResultDropdown(rowNum, dilemma) {
       selR.appendChild(opt);
     }
     selR.value = '논의 필요';
+    applyAutoSyncStyle(selR, false);
   }
   updateResultDesc(rowNum, dilemma);
+}
+
+// ── Result 자동 동기화 스타일 적용/해제 ──
+function applyAutoSyncStyle(selR, isSynced) {
+  if (isSynced) {
+    selR.classList.add('auto-synced');
+    selR.disabled = true;
+  } else {
+    selR.classList.remove('auto-synced');
+    selR.disabled = false;
+  }
+}
+
+// ── 초기 렌더링 시 2nd/3rd 일치 여부 확인하여 Result 스타일 적용 ──
+function checkInitialSyncStyle(card, dilemma) {
+  const sel2 = card.querySelector('select.editable-field[data-field="analysis2Result"][data-dilemma="' + dilemma + '"]');
+  const sel3 = card.querySelector('select.editable-field[data-field="analysis3Result"][data-dilemma="' + dilemma + '"]');
+  const selR = card.querySelector('select.editable-field[data-field="result"][data-dilemma="' + dilemma + '"]');
+  if (!sel2 || !sel3 || !selR) return;
+  const v2 = sel2.value, v3 = sel3.value;
+  if (v2 && v3 && v2 === v3 && selR.value === v2) {
+    applyAutoSyncStyle(selR, true);
+  }
 }
 
 // ── 저장 ──
@@ -2058,6 +2125,8 @@ function renderModalBody(row, editMode) {
         const v2 = sel2.value, v3 = sel3.value;
         if (v2 && v3 && v2 === v3) {
           selR.value = v2;
+          selR.classList.add('auto-synced');
+          selR.disabled = true;
         } else if (v2 && v3 && v2 !== v3) {
           if (!selR.querySelector('option[value="논의 필요"]')) {
             const opt = document.createElement('option');
@@ -2065,8 +2134,35 @@ function renderModalBody(row, editMode) {
             selR.appendChild(opt);
           }
           selR.value = '논의 필요';
+          selR.classList.remove('auto-synced');
+          selR.disabled = false;
         }
       });
+    });
+    // Modal Result 수동 변경 시 스타일 처리 (disabled 해제 후에만 동작 가능)
+    body.querySelectorAll('select.modal-edit-field[data-field="result"]').forEach(selR => {
+      selR.addEventListener('change', () => {
+        const dil = selR.dataset.dilemma;
+        const sel2 = body.querySelector('select.modal-edit-field[data-field="analysis2Result"][data-dilemma="' + dil + '"]');
+        const sel3 = body.querySelector('select.modal-edit-field[data-field="analysis3Result"][data-dilemma="' + dil + '"]');
+        if (sel2 && sel3 && sel2.value && sel3.value && sel2.value === sel3.value && selR.value === sel2.value) {
+          selR.classList.add('auto-synced');
+          selR.disabled = true;
+        } else {
+          selR.classList.remove('auto-synced');
+          selR.disabled = false;
+        }
+      });
+    });
+    // Modal 초기 렌더링 시 2nd/3rd 일치 여부에 따른 Result 스타일 적용
+    ['1','2','3','4'].forEach(d => {
+      const sel2 = body.querySelector('select.modal-edit-field[data-field="analysis2Result"][data-dilemma="' + d + '"]');
+      const sel3 = body.querySelector('select.modal-edit-field[data-field="analysis3Result"][data-dilemma="' + d + '"]');
+      const selR = body.querySelector('select.modal-edit-field[data-field="result"][data-dilemma="' + d + '"]');
+      if (sel2 && sel3 && selR && sel2.value && sel3.value && sel2.value === sel3.value && selR.value === sel2.value) {
+        selR.classList.add('auto-synced');
+        selR.disabled = true;
+      }
     });
   }
 }
@@ -4039,7 +4135,7 @@ function printSummarySheet() {
   window.open(url, '_blank');
 }
 
-// ── 카드 인쇄 ──
+// ── 결과 인쇄 ──
 function printCards() {
   const DILEMMA_SHORT_NAMES = { '1': '프라이버시 보호', '2': '데이터 관리', '3': '공공성', '4': '침해금지' };
   const dil = document.getElementById('selDilemma').value;
@@ -4051,22 +4147,72 @@ function printCards() {
 
   const title = 'Assessment Result Report [Dilemma-0' + dil + '_' + (DILEMMA_SHORT_NAMES[dil]||'') + ']';
   let html = '<div class="print-report-overlay"><div class="print-report-title">' + escHtml(title) + '</div>';
-  html += '<table class="print-report-table"><colgroup><col style="width:7%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:18%"><col style="width:18%"><col style="width:13%"><col style="width:13%"><col style="width:15%"></colgroup>';
-  html += '<thead><tr><th>ResID</th><th>Age</th><th>Gender</th><th>N2</th><th>P%</th><th>Response-1</th><th>Response-2</th><th>1st_Analysis</th><th>Result_Reason</th><th>Result</th></tr></thead><tbody>';
+  html += '<table class="print-report-table"><colgroup><col style="width:7%"><col style="width:5%"><col style="width:5%"><col style="width:17%"><col style="width:33%"><col style="width:11%"><col style="width:22%"></colgroup>';
+  html += '<thead><tr><th>ResID</th><th>N2</th><th>P%</th><th>Response-1</th><th>Response-2</th><th>Result</th><th>Result_Reason</th></tr></thead><tbody>';
 
   data.forEach(row => {
     const r1 = getCellVal(row, dm.r1);
     const r2 = getCellVal(row, dm.r2);
-    const a1 = liveEdits[row.rowNum + '_analysis1'] ?? getCellVal(row, dm.analysis1);
     const rr = liveEdits[row.rowNum + '_resultReason'] ?? getCellVal(row, dm.resultReason);
     const res = liveEdits[row.rowNum + '_result'] ?? getCellVal(row, dm.result);
-    html += '<tr><td class="center">' + escHtml(row.A) + '</td><td class="center">' + escHtml(row.D) + '</td><td class="center">' + escHtml(row.E) + '</td><td class="center">' + fmtScore(row.B) + '</td><td class="center">' + fmtScore(row.C) + '</td><td>' + escHtml(r1) + '</td><td>' + escHtml(r2) + '</td><td>' + escHtml(a1) + '</td><td>' + escHtml(rr) + '</td><td class="center">' + escHtml(res) + '</td></tr>';
+    html += '<tr><td class="center">' + escHtml(row.A) + '</td><td class="center">' + fmtScore(row.B) + '</td><td class="center">' + fmtScore(row.C) + '</td><td>' + escHtml(r1) + '</td><td>' + escHtml(r2) + '</td><td class="center">' + escHtml(res) + '</td><td>' + escHtml(rr) + '</td></tr>';
   });
 
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
   const dateStr = now.getFullYear() + '. ' + pad(now.getMonth()+1) + '. ' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
-  html += '</tbody><tfoot><tr><td colspan="10" style="border:none;padding:6px 0 0;font-size:9px;color:#555;"><span style="float:right;">' + escHtml(dateStr) + '</span></td></tr></tfoot></table></div>';
+  html += '</tbody><tfoot><tr><td colspan="7" style="border:none;padding:6px 0 0;font-size:9px;color:#555;"><span style="float:right;">' + escHtml(dateStr) + '</span></td></tr></tfoot></table></div>';
+
+  let overlay = document.getElementById('printReportOverlay');
+  if (overlay) overlay.remove();
+  overlay = document.createElement('div');
+  overlay.id = 'printReportOverlay';
+  overlay.style.display = 'none';
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+
+  const style = document.createElement('style');
+  style.id = 'cards-print-style';
+  style.textContent = '@media print { @page { size:A3 landscape; margin:8mm; } }';
+  document.head.appendChild(style);
+
+  overlay.style.display = 'block';
+  document.body.classList.add('printing-cards');
+  window.print();
+  document.body.classList.remove('printing-cards');
+  overlay.remove();
+  style.remove();
+}
+
+// ── Dataset 인쇄 ──
+function printDataset() {
+  const DILEMMA_SHORT_NAMES = { '1': '프라이버시 보호', '2': '데이터 관리', '3': '공공성', '4': '침해금지' };
+  const dil = document.getElementById('selDilemma').value;
+  const dm = DILEMMA_MAP[dil];
+  const data = applySortToData(getFilteredData(), currentSortKey);
+
+  const liveEdits = {};
+  document.querySelectorAll('.editable-field').forEach(inp => { liveEdits[inp.dataset.rownum + '_' + inp.dataset.field] = inp.tagName === 'SELECT' ? inp.value : inp.value; });
+
+  const title = 'Assessment Dataset Report [Dilemma-0' + dil + '_' + (DILEMMA_SHORT_NAMES[dil]||'') + ']';
+  let html = '<div class="print-report-overlay"><div class="print-report-title">' + escHtml(title) + '</div>';
+  html += '<table class="print-report-table"><colgroup><col style="width:6%"><col style="width:4%"><col style="width:4%"><col style="width:13%"><col style="width:20%"><col style="width:16%"><col style="width:10%"><col style="width:16%"><col style="width:11%"></colgroup>';
+  html += '<thead><tr><th>ResID</th><th>N2</th><th>P%</th><th>Response-1</th><th>Response-2</th><th>1st_Analysis</th><th>1st_Analysis<br>Result</th><th>Result_Reason</th><th>Result</th></tr></thead><tbody>';
+
+  data.forEach(row => {
+    const r1 = getCellVal(row, dm.r1);
+    const r2 = getCellVal(row, dm.r2);
+    const a1 = liveEdits[row.rowNum + '_analysis1'] ?? getCellVal(row, dm.analysis1);
+    const a1r = liveEdits[row.rowNum + '_analysis1Result'] ?? getCellVal(row, dm.analysis1Result);
+    const rr = liveEdits[row.rowNum + '_resultReason'] ?? getCellVal(row, dm.resultReason);
+    const res = liveEdits[row.rowNum + '_result'] ?? getCellVal(row, dm.result);
+    html += '<tr><td class="center">' + escHtml(row.A) + '</td><td class="center">' + fmtScore(row.B) + '</td><td class="center">' + fmtScore(row.C) + '</td><td>' + escHtml(r1) + '</td><td>' + escHtml(r2) + '</td><td>' + escHtml(a1) + '</td><td class="center">' + escHtml(a1r) + '</td><td>' + escHtml(rr) + '</td><td class="center">' + escHtml(res) + '</td></tr>';
+  });
+
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const dateStr = now.getFullYear() + '. ' + pad(now.getMonth()+1) + '. ' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+  html += '</tbody><tfoot><tr><td colspan="9" style="border:none;padding:6px 0 0;font-size:9px;color:#555;"><span style="float:right;">' + escHtml(dateStr) + '</span></td></tr></tfoot></table></div>';
 
   let overlay = document.getElementById('printReportOverlay');
   if (overlay) overlay.remove();
