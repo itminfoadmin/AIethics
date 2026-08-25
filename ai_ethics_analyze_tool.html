@@ -489,6 +489,117 @@ body {
   font-variant-numeric:tabular-nums;
 }
 
+/* ── Analysis Target Modal ── */
+.analysis-target-box {
+  background:#fff; border-radius:16px; max-width:460px; width:92%;
+  box-shadow:0 24px 80px rgba(0,0,0,.22), 0 0 0 1px rgba(255,255,255,.08);
+  overflow:hidden;
+  animation:atSlideUp .35s cubic-bezier(.16,1,.3,1);
+}
+@keyframes atSlideUp {
+  from { opacity:0; transform:translateY(24px) scale(.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.analysis-target-header {
+  display:flex; align-items:center; gap:14px;
+  padding:20px 24px 16px;
+  background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a78bfa 100%);
+  color:#fff; position:relative;
+}
+.analysis-target-icon {
+  width:46px; height:46px; border-radius:12px;
+  background:rgba(255,255,255,.18); backdrop-filter:blur(6px);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.analysis-target-title {
+  font-size:17px; font-weight:700; letter-spacing:.3px;
+}
+.analysis-target-sub {
+  font-size:12.5px; color:rgba(255,255,255,.78); margin-top:2px; font-weight:500;
+}
+.analysis-target-close {
+  position:absolute; top:14px; right:16px;
+  width:30px; height:30px; border-radius:8px;
+  background:rgba(255,255,255,.15); border:none; color:#fff;
+  font-size:20px; line-height:1; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .15s;
+}
+.analysis-target-close:hover { background:rgba(255,255,255,.28); }
+.analysis-target-body {
+  padding:20px 24px 8px;
+  display:flex; flex-direction:column; gap:10px;
+}
+.at-btn {
+  display:flex; align-items:center; gap:12px;
+  width:100%; padding:14px 18px; border-radius:11px;
+  border:2px solid transparent;
+  font-family:inherit; font-size:14px; font-weight:600;
+  cursor:pointer; transition:all .2s ease;
+  text-align:left; position:relative; overflow:hidden;
+}
+.at-btn::before {
+  content:''; position:absolute; inset:0;
+  opacity:0; transition:opacity .2s;
+  border-radius:inherit;
+}
+.at-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,.1); }
+.at-btn:hover::before { opacity:1; }
+.at-btn:active { transform:translateY(0); }
+.at-btn-step {
+  font-size:10px; font-weight:800; letter-spacing:1px;
+  padding:3px 8px; border-radius:5px;
+  flex-shrink:0; text-transform:uppercase;
+}
+.at-btn-label { flex:1; }
+.at-btn-arrow {
+  font-size:18px; opacity:.5; transition:all .2s;
+  flex-shrink:0;
+}
+.at-btn:hover .at-btn-arrow { opacity:1; transform:translateX(3px); }
+
+/* Individual button colors */
+.at-btn-1 {
+  background:linear-gradient(135deg,#eff6ff,#e0f2fe);
+  color:#1e40af; border-color:#bfdbfe;
+}
+.at-btn-1:hover { border-color:#60a5fa; background:linear-gradient(135deg,#dbeafe,#bfdbfe); }
+.at-btn-1 .at-btn-step { background:#3b82f6; color:#fff; }
+
+.at-btn-2 {
+  background:linear-gradient(135deg,#fefce8,#fef9c3);
+  color:#92400e; border-color:#fde68a;
+}
+.at-btn-2:hover { border-color:#fbbf24; background:linear-gradient(135deg,#fef9c3,#fde68a); }
+.at-btn-2 .at-btn-step { background:#f59e0b; color:#fff; }
+
+.at-btn-3 {
+  background:linear-gradient(135deg,#ecfdf5,#d1fae5);
+  color:#065f46; border-color:#a7f3d0;
+}
+.at-btn-3:hover { border-color:#34d399; background:linear-gradient(135deg,#d1fae5,#a7f3d0); }
+.at-btn-3 .at-btn-step { background:#10b981; color:#fff; }
+
+.at-btn-result {
+  background:linear-gradient(135deg,#faf5ff,#f3e8ff);
+  color:#581c87; border-color:#d8b4fe;
+}
+.at-btn-result:hover { border-color:#a78bfa; background:linear-gradient(135deg,#f3e8ff,#e9d5ff); }
+.at-btn-result .at-btn-step { background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; }
+
+.analysis-target-footer {
+  padding:12px 24px 20px;
+}
+.at-cancel-btn {
+  width:100%; padding:10px; border-radius:9px;
+  border:1.5px solid #e2e8f0; background:#f8fafc;
+  color:#64748b; font-size:13px; font-weight:600;
+  font-family:inherit; cursor:pointer;
+  transition:all .15s;
+}
+.at-cancel-btn:hover { background:#f1f5f9; border-color:#cbd5e1; color:#475569; }
+
 /* ── Error Retry Modal ── */
 .error-modal-overlay {
   display:none; position:fixed; inset:0; background:rgba(15,23,42,.6);
@@ -788,17 +899,42 @@ body {
 
 <!-- 분석 대상 선택 모달 -->
 <div class="exit-modal-overlay" id="analysisTargetOverlay">
-  <div class="exit-modal-box" style="max-width:440px;">
-    <div class="exit-modal-icon">📊</div>
-    <div class="exit-modal-title">분석 기준 선택</div>
-    <div class="exit-modal-msg" style="margin-bottom:16px;">어떤 분석 결과를 기준으로 자료를 분석할까요?</div>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px;">
-      <button class="btn btn-blue" style="width:100%;padding:12px;font-size:14px;" onclick="runAnalysisWithTarget('analysis1Result')">1st_Analysis_Result 기준</button>
-      <button class="btn btn-blue" style="width:100%;padding:12px;font-size:14px;" onclick="runAnalysisWithTarget('analysis2Result')">2nd_Analysis_Result 기준</button>
-      <button class="btn btn-blue" style="width:100%;padding:12px;font-size:14px;" onclick="runAnalysisWithTarget('analysis3Result')">3rd_Analysis_Result 기준</button>
-      <button class="btn btn-dark" style="width:100%;padding:12px;font-size:14px;" onclick="runAnalysisWithTarget('result')">Result 기준</button>
+  <div class="analysis-target-box">
+    <div class="analysis-target-header">
+      <div class="analysis-target-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12c0 1.2-4 6-9 6s-9-4.8-9-6 4-6 9-6 9 4.8 9 6z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      <div>
+        <div class="analysis-target-title">분석 기준 선택</div>
+        <div class="analysis-target-sub">어떤 분석 결과를 기준으로 자료를 분석할까요?</div>
+      </div>
+      <button class="analysis-target-close" onclick="closeAnalysisTargetModal()">&times;</button>
     </div>
-    <button class="btn btn-gray" style="width:100%;padding:10px;font-size:13px;margin-top:4px;" onclick="closeAnalysisTargetModal()">취소</button>
+    <div class="analysis-target-body">
+      <button class="at-btn at-btn-1" onclick="runAnalysisWithTarget('analysis1Result')">
+        <span class="at-btn-step">STEP 1</span>
+        <span class="at-btn-label">1st-Analysis 기준</span>
+        <span class="at-btn-arrow">→</span>
+      </button>
+      <button class="at-btn at-btn-2" onclick="runAnalysisWithTarget('analysis2Result')">
+        <span class="at-btn-step">STEP 2</span>
+        <span class="at-btn-label">2nd-Analysis 기준</span>
+        <span class="at-btn-arrow">→</span>
+      </button>
+      <button class="at-btn at-btn-3" onclick="runAnalysisWithTarget('analysis3Result')">
+        <span class="at-btn-step">STEP 3</span>
+        <span class="at-btn-label">3rd-Analysis 기준</span>
+        <span class="at-btn-arrow">→</span>
+      </button>
+      <button class="at-btn at-btn-result" onclick="runAnalysisWithTarget('result')">
+        <span class="at-btn-step">FINAL</span>
+        <span class="at-btn-label">최종 판정(Result) 기준</span>
+        <span class="at-btn-arrow">→</span>
+      </button>
+    </div>
+    <div class="analysis-target-footer">
+      <button class="at-cancel-btn" onclick="closeAnalysisTargetModal()">취소</button>
+    </div>
   </div>
 </div>
 
@@ -2046,10 +2182,10 @@ function runAnalysisWithTarget(targetField) {
 async function openCombinedAnalysis(targetField) {
   targetField = targetField || 'result';
   const TARGET_LABELS = {
-    'analysis1Result': '1st_Analysis_Result',
-    'analysis2Result': '2nd_Analysis_Result',
-    'analysis3Result': '3rd_Analysis_Result',
-    'result': 'Result'
+    'analysis1Result': '1st-Analysis',
+    'analysis2Result': '2nd-Analysis',
+    'analysis3Result': '3rd-Analysis',
+    'result': '최종 판정(Result)'
   };
   const targetLabel = TARGET_LABELS[targetField] || 'Result';
 
