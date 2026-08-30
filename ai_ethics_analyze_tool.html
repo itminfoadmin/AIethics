@@ -793,7 +793,8 @@ body {
           </label>
         </div>
         <button class="btn btn-dark" onclick="guardCheckUnsaved(openSchemeManager, 'codeManager')">Code 보기</button>
-        <button class="btn btn-dark" onclick="openDocsModal()">Dilemma 보기</button>
+        <button class="btn btn-dark" onclick="openDocsModal2()">Schema-A/B/C 개요</button>
+        <button class="btn btn-dark" onclick="openDocsModal1()">Dilemma 보기</button>
         <button class="btn btn-dark" onclick="showExitConfirm()">종료</button>
       </div>
     </div>
@@ -1085,9 +1086,10 @@ const DILEMMA_LABELS = [
   'AI Dilemma 04 - 침해금지 (정신적, 신체적 피해 가능성)',
 ];
 
-// 이가주의 판단 도식 문서 URL (필요시 변경)
-const SCHEME_DOC_URL = 'https://docs.google.com/document/d/123uxkezDUtXmtUvLsR7PHQzs0Q2Z6T58TRKRHBtul0o/preview';
-const DOCS_URL = SCHEME_DOC_URL;
+const SCHEME_DOC_URL1 = 'https://docs.google.com/document/d/123uxkezDUtXmtUvLsR7PHQzs0Q2Z6T58TRKRHBtul0o/preview';
+const DOCS_URL1 = SCHEME_DOC_URL1;
+const SCHEME_DOC_URL2 = 'https://docs.google.com/document/d/1fZ0dkyAEdW8FQtvZAvOA8LzBCFKRTXpkuCIAwg45VpY/preview';
+const DOCS_URL2 = SCHEME_DOC_URL2;
 
 // ── 재시도 fetch 래퍼 ──
 async function fetchWithRetry(url, options = {}, maxRetries = 3, timeoutMs = 30000) {
@@ -2232,9 +2234,21 @@ function closeModal() {
   modalRow = null;
 }
 
-// ── Dilemma Docs Modal ──
-function openDocsModal() {
-  document.getElementById('docsIframe').src = DOCS_URL;
+// ── Dilemma Docs Modal 1──
+function openDocsModal1() {
+  document.getElementById('docsIframe').src = DOCS_URL1;
+  document.getElementById('docsModalOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeDocsModal() {
+  document.getElementById('docsModalOverlay').classList.remove('show');
+  document.getElementById('docsIframe').src = '';
+  document.body.style.overflow = '';
+}
+
+// ── Dilemma Docs Modal 2──
+function openDocsModal2() {
+  document.getElementById('docsIframe').src = DOCS_URL2;
   document.getElementById('docsModalOverlay').classList.add('show');
   document.body.style.overflow = 'hidden';
 }
@@ -2732,7 +2746,7 @@ function buildChoiceCombinationSection(allLabels, groups, groupIdx, dm, dilNum, 
 
   const selectors = [];
   const grid = document.createElement('div');
-  grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;';
+  grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;justify-content:space-between;';
 
   const colorsArr = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
 
