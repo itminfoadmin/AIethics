@@ -795,6 +795,7 @@ body {
         <button class="btn btn-dark" onclick="guardCheckUnsaved(openSchemeManager, 'codeManager')">Code 보기</button>
         <button class="btn btn-dark" onclick="openDocsModal2()">Schema-A/B/C 개요</button>
         <button class="btn btn-dark" onclick="openDocsModal1()">Dilemma 보기</button>
+        <button class="btn btn-dark" onclick="openDocsModal0()">Article</button>
         <button class="btn btn-dark" onclick="showExitConfirm()">종료</button>
       </div>
     </div>
@@ -1086,10 +1087,12 @@ const DILEMMA_LABELS = [
   'AI Dilemma 04 - 침해금지 (정신적, 신체적 피해 가능성)',
 ];
 
-const SCHEME_DOC_URL1 = 'https://docs.google.com/document/d/123uxkezDUtXmtUvLsR7PHQzs0Q2Z6T58TRKRHBtul0o/preview';
-const DOCS_URL1 = SCHEME_DOC_URL1;
 const SCHEME_DOC_URL2 = 'https://docs.google.com/document/d/1fZ0dkyAEdW8FQtvZAvOA8LzBCFKRTXpkuCIAwg45VpY/preview';
 const DOCS_URL2 = SCHEME_DOC_URL2;
+const SCHEME_DOC_URL1 = 'https://docs.google.com/document/d/123uxkezDUtXmtUvLsR7PHQzs0Q2Z6T58TRKRHBtul0o/preview';
+const DOCS_URL1 = SCHEME_DOC_URL1;
+const SCHEME_DOC_URL0 = 'https://docs.google.com/document/d/1KfeJSZpPWf5fvsi8ncvagBMrQRMhkircEet-IqH1CmY/edit?usp=sharing';
+const DOCS_URL0 = SCHEME_DOC_URL0;
 
 // ── 재시도 fetch 래퍼 ──
 async function fetchWithRetry(url, options = {}, maxRetries = 3, timeoutMs = 30000) {
@@ -2234,7 +2237,19 @@ function closeModal() {
   modalRow = null;
 }
 
-// ── Dilemma Docs Modal 1──
+// ── Schema-A/B/C Docs Modal──
+function openDocsModal2() {
+  document.getElementById('docsIframe').src = DOCS_URL2;
+  document.getElementById('docsModalOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeDocsModal() {
+  document.getElementById('docsModalOverlay').classList.remove('show');
+  document.getElementById('docsIframe').src = '';
+  document.body.style.overflow = '';
+}
+
+// ── Dilemma Docs Modal──
 function openDocsModal1() {
   document.getElementById('docsIframe').src = DOCS_URL1;
   document.getElementById('docsModalOverlay').classList.add('show');
@@ -2246,9 +2261,9 @@ function closeDocsModal() {
   document.body.style.overflow = '';
 }
 
-// ── Dilemma Docs Modal 2──
-function openDocsModal2() {
-  document.getElementById('docsIframe').src = DOCS_URL2;
+// ── Article Docs Modal──
+function openDocsModal0() {
+  document.getElementById('docsIframe').src = DOCS_URL0;
   document.getElementById('docsModalOverlay').classList.add('show');
   document.body.style.overflow = 'hidden';
 }
