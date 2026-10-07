@@ -858,6 +858,10 @@ body {
       <div class="modal-header-left">
         <span><span class="modal-field-label">ResID</span> <span class="modal-field-value" id="mResID">-</span></span>
         <div class="modal-sep"></div>
+        <span><span class="modal-field-label">School</span> <span class="modal-field-value" id="mSchool">-</span></span>
+        <div class="modal-sep"></div>
+        <span><span class="modal-field-label">Grade</span> <span class="modal-field-value" id="mGrade">-</span></span>
+        <div class="modal-sep"></div>
         <span><span class="modal-field-label">Age</span> <span class="modal-field-value" id="mAge">-</span></span>
         <div class="modal-sep"></div>
         <span><span class="modal-field-label">Gender</span> <span class="modal-field-value" id="mSex">-</span></span>
@@ -1010,7 +1014,7 @@ body {
 // ──────────────────────────────────────────
 // ★ 설정: GAS 웹앱 URL (배포 후 실제 URL로 변경!)
 // ──────────────────────────────────────────
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwZYg3s2bTO7FJ8vG8nn6kkQH1JHIIL-Y6Awtq4rlOn5iswZsdKUJJo6fXfvPEaSJdPKg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyVeQrWXrfb6pz390b33Pm-sze00tBb5xVN99zIeTWYHar_T5Ykt2Xcuw_XSMmHZG6T_Q/exec';
 
 const HEADER_ROWS = 2;
 const COL_NAMES = [
@@ -1018,7 +1022,8 @@ const COL_NAMES = [
   'G','H','I','J','K','L','M','N','O','P',
   'Q','R','S','T','U','V','W','X','Y','Z',
   'AA','AB','AC','AD','AE','AF','AG','AH','AI','AJ',
-  'AK','AL','AM','AN','AO','AP','AQ','AR','AS','AT'
+  'AK','AL','AM','AN','AO','AP','AQ','AR','AS','AT',
+  'AU','AV'
 ];
 const COL_LETTERS = COL_NAMES;
 
@@ -1026,55 +1031,55 @@ let allData = [];
 let codeTabData = [];
 
 // ── Dilemma 매핑 (0-based index for raw array) ──
-// A=0:ResID B=1:N2 C=2:P% D=3:Age E=4:Gender F=5:AIE_exp
-// Dilemma1: G(6)=R1, H(7)=R2, I(8)=1stA, J(9)=1stAR, K(10)=2ndA, L(11)=2ndAR, M(12)=3rdA, N(13)=3rdAR, O(14)=ResReason, P(15)=Result
-// Dilemma2: Q(16)=R1, R(17)=R2, S(18)~Z(25)
-// Dilemma3: AA(26)=R1, AB(27)=R2, AC(28)~AJ(35)
-// Dilemma4: AK(36)=R1, AL(37)=R2, AM(38)~AT(45)
+// A=0:ResID B=1:N2 C=2:P% D=3:Age E=4:School F=5:Grade G=6:Gender H=7:AIE_exp
+// Dilemma1: I(8)=R1, J(9)=R2, K(10)=1stA, L(11)=1stAR, M(12)=2ndA, N(13)=2ndAR, O(14)=3rdA, P(15)=3rdAR, Q(16)=ResReason, R(17)=Result
+// Dilemma2: S(18)=R1, T(19)=R2, U(20)~AB(27)
+// Dilemma3: AC(28)=R1, AD(29)=R2, AE(30)~AL(37)
+// Dilemma4: AM(38)=R1, AN(39)=R2, AO(40)~AV(47)
 const DILEMMA_MAP = {
   '1': {
-    r1:6, r2:7,
-    analysis1:8, analysis1Result:9,
-    analysis2:10, analysis2Result:11,
-    analysis3:12, analysis3Result:13,
-    resultReason:14, result:15,
-    analysis1Col:'I', analysis1ResultCol:'J',
-    analysis2Col:'K', analysis2ResultCol:'L',
-    analysis3Col:'M', analysis3ResultCol:'N',
-    resultReasonCol:'O', resultCol:'P'
+    r1:8, r2:9,
+    analysis1:10, analysis1Result:11,
+    analysis2:12, analysis2Result:13,
+    analysis3:14, analysis3Result:15,
+    resultReason:16, result:17,
+    analysis1Col:'K', analysis1ResultCol:'L',
+    analysis2Col:'M', analysis2ResultCol:'N',
+    analysis3Col:'O', analysis3ResultCol:'P',
+    resultReasonCol:'Q', resultCol:'R'
   },
   '2': {
-    r1:16, r2:17,
-    analysis1:18, analysis1Result:19,
-    analysis2:20, analysis2Result:21,
-    analysis3:22, analysis3Result:23,
-    resultReason:24, result:25,
-    analysis1Col:'S', analysis1ResultCol:'T',
-    analysis2Col:'U', analysis2ResultCol:'V',
-    analysis3Col:'W', analysis3ResultCol:'X',
-    resultReasonCol:'Y', resultCol:'Z'
+    r1:18, r2:19,
+    analysis1:20, analysis1Result:21,
+    analysis2:22, analysis2Result:23,
+    analysis3:24, analysis3Result:25,
+    resultReason:26, result:27,
+    analysis1Col:'U', analysis1ResultCol:'V',
+    analysis2Col:'W', analysis2ResultCol:'X',
+    analysis3Col:'Y', analysis3ResultCol:'Z',
+    resultReasonCol:'AA', resultCol:'AB'
   },
   '3': {
-    r1:26, r2:27,
-    analysis1:28, analysis1Result:29,
-    analysis2:30, analysis2Result:31,
-    analysis3:32, analysis3Result:33,
-    resultReason:34, result:35,
-    analysis1Col:'AC', analysis1ResultCol:'AD',
-    analysis2Col:'AE', analysis2ResultCol:'AF',
-    analysis3Col:'AG', analysis3ResultCol:'AH',
-    resultReasonCol:'AI', resultCol:'AJ'
+    r1:28, r2:29,
+    analysis1:30, analysis1Result:31,
+    analysis2:32, analysis2Result:33,
+    analysis3:34, analysis3Result:35,
+    resultReason:36, result:37,
+    analysis1Col:'AE', analysis1ResultCol:'AF',
+    analysis2Col:'AG', analysis2ResultCol:'AH',
+    analysis3Col:'AI', analysis3ResultCol:'AJ',
+    resultReasonCol:'AK', resultCol:'AL'
   },
   '4': {
-    r1:36, r2:37,
-    analysis1:38, analysis1Result:39,
-    analysis2:40, analysis2Result:41,
-    analysis3:42, analysis3Result:43,
-    resultReason:44, result:45,
-    analysis1Col:'AM', analysis1ResultCol:'AN',
-    analysis2Col:'AO', analysis2ResultCol:'AP',
-    analysis3Col:'AQ', analysis3ResultCol:'AR',
-    resultReasonCol:'AS', resultCol:'AT'
+    r1:38, r2:39,
+    analysis1:40, analysis1Result:41,
+    analysis2:42, analysis2Result:43,
+    analysis3:44, analysis3Result:45,
+    resultReason:46, result:47,
+    analysis1Col:'AO', analysis1ResultCol:'AP',
+    analysis2Col:'AQ', analysis2ResultCol:'AR',
+    analysis3Col:'AS', analysis3ResultCol:'AT',
+    resultReasonCol:'AU', resultCol:'AV'
   }
 };
 
@@ -1186,6 +1191,8 @@ async function loadFromGAS() {
         D: normalizeGASValue(r.D),
         E: normalizeGASValue(r.E),
         F: normalizeGASValue(r.F),
+        G: normalizeGASValue(r.G),
+        H: normalizeGASValue(r.H),
       });
     }
     return true;
@@ -1562,8 +1569,10 @@ function buildCard(row, dilemma) {
   modalBtn.addEventListener('click', () => openModal(row));
 
   const tagAge = makeTag('Age', row.D);
-  const tagSex = makeTag('Gender', row.E);
-  const tagAIE = makeTag('AIE', row.F);
+  const tagSchool = makeTag('School', row.E);
+  const tagGrade = makeTag('Grade', row.F);
+  const tagSex = makeTag('Gender', row.G);
+  const tagAIE = makeTag('AIE', row.H);
   const tagN2 = makeTag('N2', fmtScore(row.B));
   const tagP = makeTag('P%', fmtScore(row.C));
   tagN2.classList.add('ethics-score');
@@ -1578,7 +1587,7 @@ function buildCard(row, dilemma) {
     modalBtn.classList.add('dit-failed');
   }
 
-  header.append(resid, modalBtn, tagAge, tagSex, tagAIE, tagN2, tagP);
+  header.append(resid, modalBtn, tagSchool, tagGrade, tagAge, tagSex, tagAIE, tagN2, tagP);
   card.appendChild(header);
 
   // ── Body ──
@@ -2035,11 +2044,13 @@ function openModal(row) {
   document.getElementById('modalEditBtn').classList.remove('active');
   document.getElementById('modalEditBtn').style.pointerEvents = '';
   document.getElementById('mResID').textContent = row.A || '-';
+  document.getElementById('mSchool').textContent = row.E || '-';
+  document.getElementById('mGrade').textContent = row.F || '-';
   document.getElementById('mAge').textContent = row.D || '-';
-  document.getElementById('mSex').textContent = row.E || '-';
+  document.getElementById('mSex').textContent = row.G || '-';
   document.getElementById('mN2').textContent = fmtScore(row.B);
   document.getElementById('mP').textContent = fmtScore(row.C);
-  document.getElementById('mAIE').textContent = row.F || '-';
+  document.getElementById('mAIE').textContent = row.H || '-';
 
   renderModalBody(row, false);
   document.getElementById('modalOverlay').classList.add('show');
@@ -2334,7 +2345,7 @@ async function openCombinedAnalysis(targetField) {
         allData = [];
         json.data.forEach(r => {
           if (r.A && r.A.trim() === 'Ready') return;
-          allData.push({ rowNum: r.rowNum, raw: COL_NAMES.map(c => normalizeGASValue(r[c])), A: normalizeGASValue(r.A), B: normalizeGASValue(r.B), C: normalizeGASValue(r.C), D: normalizeGASValue(r.D), E: normalizeGASValue(r.E), F: normalizeGASValue(r.F) });
+          allData.push({ rowNum: r.rowNum, raw: COL_NAMES.map(c => normalizeGASValue(r[c])), A: normalizeGASValue(r.A), B: normalizeGASValue(r.B), C: normalizeGASValue(r.C), D: normalizeGASValue(r.D), E: normalizeGASValue(r.E), F: normalizeGASValue(r.F), G: normalizeGASValue(r.G), H: normalizeGASValue(r.H) });
         });
       }
     }
@@ -2459,8 +2470,8 @@ async function openCombinedAnalysis(targetField) {
     const n2 = parseFloat(r.B); if (!isNaN(n2)) groups[key].n2.push(n2);
     const p = parseFloat(r.C);  if (!isNaN(p))  groups[key].p.push(p);
     const a = parseFloat(r.D);  if (!isNaN(a))  groups[key].age.push(a);
-    const g = (r.E || '').trim(); if (g) groups[key].gender[g] = (groups[key].gender[g] || 0) + 1;
-    const aie = (r.F || '').trim(); if (aie) groups[key].aie[aie] = (groups[key].aie[aie] || 0) + 1;
+    const g = (r.G || '').trim(); if (g) groups[key].gender[g] = (groups[key].gender[g] || 0) + 1;
+    const aie = (r.H || '').trim(); if (aie) groups[key].aie[aie] = (groups[key].aie[aie] || 0) + 1;
   });
 
   const allKeys = Object.keys(groups);
