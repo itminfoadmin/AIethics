@@ -73,28 +73,7 @@ body {
 .btn-red    { background:#dc2626; color:#fff; }
 .btn-blue   { background:#2563eb; color:#fff; }
 
-/* ── Analysis Modal ── */
-.analysis-overlay {
-  display:none; position:fixed; inset:0; background:rgba(15,23,42,.55);
-  z-index:2000; backdrop-filter:blur(2px);
-}
-.analysis-overlay.show { display:block; }
-.analysis-box {
-  background:#fff; width:92%; max-width:1200px; height:85vh; border-radius:10px;
-  box-shadow:0 20px 60px rgba(0,0,0,.25);
-  position:absolute; left:50%; top:40px; transform:translateX(-50%);
-  display:flex; flex-direction:column;
-}
-.analysis-header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:16px 24px; background:linear-gradient(135deg,#1e293b,#334155);
-  border-radius:10px 10px 0 0; color:#fff;
-  cursor:grab; user-select:none; flex-shrink:0;
-}
-.analysis-header:active { cursor:grabbing; }
-.analysis-title { font-size:15px; font-weight:700; letter-spacing:.5px; }
-.analysis-subtitle { font-size:12px; color:#94a3b8; margin-left:12px; font-weight:400; }
-.analysis-body { padding:24px; flex:1; overflow-y:auto; border-radius:0 0 10px 10px; }
+/* ── Analysis Styles ── */
 .analysis-charts { display:flex; flex-direction:column; gap:28px; }
 .analysis-chart-section { }
 .analysis-chart-title {
@@ -715,20 +694,6 @@ body {
   .resp-text { border:1px solid #ddd; font-size:10.5px; padding:4px 6px; }
   .analysis-row .row-textarea { border:2px solid #94a3b8; font-size:10px; padding:3px 5px; font-weight:600; }
 
-  body.printing-analysis .page-wrap { display:none !important; }
-  body.printing-analysis .analysis-overlay {
-    display:block !important; position:static !important;
-    background:none !important; backdrop-filter:none !important;
-    overflow:visible !important;
-  }
-  body.printing-analysis .analysis-box {
-    width:100% !important; max-width:100% !important; height:auto !important;
-    position:static !important; transform:none !important;
-  }
-  body.printing-analysis .analysis-body { overflow:visible !important; height:auto !important; }
-  body.printing-analysis .analysis-chart-section { break-inside:avoid; }
-  body.printing-analysis .analysis-print-page-break { page-break-before:always !important; }
-
   body.printing-cards .page-wrap,
   body.printing-cards .fixed-header,
   body.printing-cards .header-spacer,
@@ -736,7 +701,6 @@ body {
   body.printing-cards .status-toast,
   body.printing-cards .modal-overlay,
   body.printing-cards .docs-modal-overlay,
-  body.printing-cards .analysis-overlay,
   body.printing-cards .exit-modal-overlay,
   body.printing-cards .error-modal-overlay,
   body.printing-cards #guardModalOverlay,
@@ -889,23 +853,6 @@ body {
       <button class="modal-close-btn" onclick="closeDocsModal()">닫기 ✕</button>
     </div>
     <iframe class="docs-modal-iframe" id="docsIframe" src=""></iframe>
-  </div>
-</div>
-
-<!-- Analysis Modal -->
-<div class="analysis-overlay" id="analysisOverlay" onclick="if(event.target===this)closeAnalysis()">
-  <div class="analysis-box" id="analysisBox">
-    <div class="analysis-header" id="analysisHeader">
-      <div>
-        <span class="analysis-title" id="analysisTitle">분석</span>
-        <span class="analysis-subtitle" id="analysisSubtitle"></span>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button class="modal-close-btn" onclick="printAnalysis()" style="background:rgba(255,255,255,.25);">출력 🖨</button>
-        <button class="modal-close-btn" onclick="closeAnalysis()">닫기 ✕</button>
-      </div>
-    </div>
-    <div class="analysis-body" id="analysisBody"></div>
   </div>
 </div>
 
@@ -1204,15 +1151,39 @@ async function loadFromGAS() {
 
 // ── 데이터 로드 ──
 async function loadData() {
-  showLoading(true);
   try {
-    updateLoadingStatus('서버 연결 중...');
-    const results = await Promise.allSettled([loadCodeTab(), loadFromGAS()]);
-    if (results[1].status === 'rejected' || results[1].value === false) {
-      const errMsg = results[1].reason?.message || 'GAS 서버 응답 실패';
-      throw new Error(errMsg);
+    // sessionStorage에서 미리 로드된 데이터 확인 (index.html에서 전달)
+    const cachedAllData = sessionStorage.getItem('aiethics_allData');
+    const cachedCodeData = sessionStorage.getItem('aiethics_codeTabData');
+    const loadTime = sessionStorage.getItem('aiethics_loadTime');
+
+    if (cachedAllData && loadTime) {
+      try {
+        allData = JSON.parse(cachedAllData);
+        if (cachedCodeData) codeTabData = JSON.parse(cachedCodeData);
+        // 사용 후 sessionStorage 정리
+        sessionStorage.removeItem('aiethics_allData');
+        sessionStorage.removeItem('aiethics_codeTabData');
+        sessionStorage.removeItem('aiethics_loadTime');
+        console.log('sessionStorage에서 데이터 로드 완료:', allData.length + '건');
+      } catch(parseErr) {
+        console.warn('캐시 파싱 실패, GAS에서 다시 로드:', parseErr);
+        allData = [];
+        codeTabData = [];
+      }
     }
-    updateLoadingStatus('카드 렌더링 중...');
+
+    // sessionStorage에서 로드 실패하거나 데이터가 없으면 GAS에서 직접 로드
+    if (allData.length === 0) {
+      showLoading(true);
+      updateLoadingStatus('서버 연결 중...');
+      const results = await Promise.allSettled([loadCodeTab(), loadFromGAS()]);
+      if (results[1].status === 'rejected' || results[1].value === false) {
+        const errMsg = results[1].reason?.message || 'GAS 서버 응답 실패';
+        throw new Error(errMsg);
+      }
+    }
+
     // 저장 후 새로고침인 경우 상태 복원, 아니면 일반 렌더링
     const savedState = restoreStateAfterReload();
     if (savedState) {
@@ -2299,8 +2270,93 @@ function makeDraggable(headerEl, boxEl) {
   document.addEventListener('mouseup', () => { isDragging = false; });
 }
 
-// ── 분석 모달 ──
-function closeAnalysis() { document.getElementById('analysisOverlay').classList.remove('show'); document.body.style.overflow = ''; }
+// ── 분석 새 창 CSS ──
+function _getAnalysisWindowCSS() {
+  return `
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Inter', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  background:#fff; color:#2c3e50; font-size:14px;
+}
+.analysis-win-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 24px; background:linear-gradient(135deg,#1e293b,#334155);
+  color:#fff; position:sticky; top:0; z-index:10;
+}
+.analysis-title { font-size:15px; font-weight:700; letter-spacing:.5px; }
+.analysis-subtitle { font-size:12px; color:#94a3b8; margin-left:12px; font-weight:400; }
+.header-btn {
+  padding:6px 14px; border:none; border-radius:6px; cursor:pointer;
+  font-size:13px; font-weight:600; font-family:inherit;
+  background:rgba(255,255,255,.2); color:#fff;
+  transition:all .15s; letter-spacing:.3px;
+}
+.header-btn:hover { background:rgba(255,255,255,.35); }
+.analysis-win-body { padding:24px; }
+.analysis-charts { display:flex; flex-direction:column; gap:28px; }
+.analysis-chart-section { }
+.analysis-chart-title {
+  font-size:14px; font-weight:700; color:#1e293b; margin-bottom:12px;
+  padding-bottom:6px; border-bottom:2px solid #e2e8f0;
+}
+.analysis-chart-wrap {
+  background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px;
+}
+.analysis-summary {
+  margin-top:24px; background:#f8fafc; border:1px solid #e2e8f0;
+  border-radius:8px; overflow-x:auto;
+}
+.analysis-summary table { width:100%; border-collapse:collapse; font-size:13px; }
+.analysis-summary th {
+  background:#1e293b; color:#fff; padding:6px 10px; text-align:center;
+  font-size:12px; font-weight:600; letter-spacing:.3px;
+}
+.analysis-summary td {
+  padding:7px 12px; border-bottom:1px solid #e2e8f0; text-align:center; color:#475569;
+}
+.analysis-summary tr:hover td { background:#eef2ff; }
+.analysis-loading {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  height:60vh; gap:20px; color:#475569; font-size:15px; font-weight:600;
+}
+.analysis-loading .loading-text {
+  background:linear-gradient(90deg,#334155,#3b82f6,#8b5cf6,#334155);
+  background-size:300% 100%;
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  animation:shimmerText 2s ease-in-out infinite;
+}
+.dynamic-spinner { position:relative; width:56px; height:56px; }
+.dynamic-spinner .ring { position:absolute; inset:0; border-radius:50%; border:3px solid transparent; }
+.dynamic-spinner .ring:nth-child(1) { border-top-color:#3b82f6; border-right-color:#3b82f6; animation:spinRing 1s cubic-bezier(.6,.2,.4,.8) infinite; }
+.dynamic-spinner .ring:nth-child(2) { inset:6px; border-bottom-color:#8b5cf6; border-left-color:#8b5cf6; animation:spinRing 1.4s cubic-bezier(.6,.2,.4,.8) infinite reverse; }
+.dynamic-spinner .ring:nth-child(3) { inset:12px; border-top-color:#10b981; animation:spinRing .9s linear infinite; }
+.dynamic-spinner .dot { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+.dynamic-spinner .dot::after { content:''; width:8px; height:8px; border-radius:50%; background:linear-gradient(135deg,#3b82f6,#8b5cf6); animation:pulse 1.2s ease-in-out infinite; }
+.loading-bar-track { width:180px; height:4px; background:#e2e8f0; border-radius:4px; overflow:hidden; margin-top:4px; }
+.loading-bar-fill { height:100%; width:30%; border-radius:4px; background:linear-gradient(90deg,#3b82f6,#8b5cf6,#10b981); animation:slideBar 1.5s ease-in-out infinite; }
+@keyframes spinRing { to { transform:rotate(360deg); } }
+@keyframes pulse { 0%,100%{transform:scale(.8);opacity:.6} 50%{transform:scale(1.2);opacity:1} }
+@keyframes slideBar { 0%{transform:translateX(-100%)} 50%{transform:translateX(300%)} 100%{transform:translateX(600%)} }
+@keyframes shimmerText { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
+.btn {
+  padding:6px 14px; border:none; border-radius:6px; cursor:pointer;
+  font-size:13px; font-weight:600; font-family:inherit;
+  transition:all .15s; letter-spacing:.3px;
+}
+.btn:hover { transform:translateY(-1px); box-shadow:0 2px 6px rgba(0,0,0,.15); }
+.btn:active { transform:translateY(0); }
+.btn-gray { background:#64748b; color:#fff; }
+.btn-blue { background:#2563eb; color:#fff; }
+@media print {
+  @page { size:letter portrait; margin:10mm; }
+  .analysis-win-header { position:static; }
+  .header-btn { display:none; }
+  .analysis-chart-section { break-inside:avoid; }
+  .analysis-print-page-break { page-break-before:always !important; }
+}
+`;
+}
 
 // 분석 대상 선택 모달
 function showAnalysisTargetModal() {
@@ -2329,12 +2385,36 @@ async function openCombinedAnalysis(targetField) {
   const dil = document.getElementById('selDilemma').value;
   const dilLabel = 'Dilemma-0' + dil;
   const dm = DILEMMA_MAP[dil];
-  document.getElementById('analysisTitle').textContent = '통합 분석';
-  document.getElementById('analysisSubtitle').textContent = dilLabel + ' · ' + targetLabel + ' 기준';
-  const body = document.getElementById('analysisBody');
-  body.innerHTML = '<div class="analysis-loading"><div class="dynamic-spinner"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div></div><div class="loading-text">데이터 분석 중...</div><div class="loading-bar-track"><div class="loading-bar-fill"></div></div></div>';
-  document.getElementById('analysisOverlay').classList.add('show');
-  document.body.style.overflow = 'hidden';
+  // 새 창 열기 (모달 크기와 동일: 92% width, max 1200px, 85vh height)
+  const screenW = window.screen.availWidth || 1280;
+  const screenH = window.screen.availHeight || 800;
+  const winW = Math.min(1200, Math.round(screenW * 0.92));
+  const winH = Math.round(screenH * 0.85);
+  const winLeft = Math.round((screenW - winW) / 2);
+  const winTop = Math.round((screenH - winH) / 2);
+  const analysisWin = window.open('', '_blank',
+    'width=' + winW + ',height=' + winH + ',left=' + winLeft + ',top=' + winTop +
+    ',menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes');
+  if (!analysisWin) { alert('팝업이 차단되었습니다. 팝업을 허용해주세요.'); return; }
+
+  analysisWin.document.write('<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+    '<title>통합 분석 — ' + escHtml(dilLabel) + ' · ' + escHtml(targetLabel) + '</title>' +
+    '<style>' + _getAnalysisWindowCSS() + '</style></head><body>' +
+    '<div class="analysis-win-header">' +
+      '<div><span class="analysis-title">통합 분석</span>' +
+      '<span class="analysis-subtitle">' + escHtml(dilLabel) + ' · ' + escHtml(targetLabel) + ' 기준</span></div>' +
+      '<div style="display:flex;gap:8px;align-items:center;">' +
+        '<button class="header-btn" onclick="window.print()">출력 🖨</button>' +
+        '<button class="header-btn" onclick="window.close()">닫기 ✕</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="analysis-win-body" id="analysisBody">' +
+      '<div class="analysis-loading"><div class="dynamic-spinner"><div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div></div>' +
+      '<div class="loading-text">데이터 분석 중...</div><div class="loading-bar-track"><div class="loading-bar-fill"></div></div></div>' +
+    '</div></body></html>');
+  analysisWin.document.close();
+
+  const body = analysisWin.document.getElementById('analysisBody');
 
   // 최신 데이터 로드
   try {
@@ -2465,11 +2545,12 @@ async function openCombinedAnalysis(targetField) {
   allData.forEach(r => {
     const key = getCellVal(r, groupIdx);
     if (!key) return;
-    if (!groups[key]) groups[key] = { n2: [], p: [], age: [], gender: {}, aie: {}, count: 0 };
+    if (!groups[key]) groups[key] = { n2: [], p: [], age: [], grade: {}, gender: {}, aie: {}, count: 0 };
     groups[key].count++;
     const n2 = parseFloat(r.B); if (!isNaN(n2)) groups[key].n2.push(n2);
     const p = parseFloat(r.C);  if (!isNaN(p))  groups[key].p.push(p);
     const a = parseFloat(r.D);  if (!isNaN(a))  groups[key].age.push(a);
+    const gr = (r.F || '').trim(); if (gr) groups[key].grade[gr] = (groups[key].grade[gr] || 0) + 1;
     const g = (r.G || '').trim(); if (g) groups[key].gender[g] = (groups[key].gender[g] || 0) + 1;
     const aie = (r.H || '').trim(); if (aie) groups[key].aie[aie] = (groups[key].aie[aie] || 0) + 1;
   });
@@ -2593,6 +2674,20 @@ async function openCombinedAnalysis(targetField) {
       masterWrap.appendChild(choiceCombDiv);
     }
 
+    // Grade × Group 상관관계 분석 (interactive)
+    {
+      const gradeCombDiv = buildGradeCombinationSection(nonIRDLabels, groups, groupIdx, allData);
+      gradeCombDiv.classList.add('analysis-print-page-break');
+      masterWrap.appendChild(gradeCombDiv);
+    }
+
+    // Gender × Group 상관관계 분석 (interactive)
+    {
+      const genderCombDiv = buildGenderCombinationSection(nonIRDLabels, groups, groupIdx, allData);
+      genderCombDiv.classList.add('analysis-print-page-break');
+      masterWrap.appendChild(genderCombDiv);
+    }
+
     // N2 Box Plot
     const bpN2 = labels.map(k => ({ label:k, ...boxStats(groups[k].n2) }));
     const n2BpSec = document.createElement('div');
@@ -2643,26 +2738,6 @@ async function openCombinedAnalysis(targetField) {
     ageSec.append(ageTitle, ageWrap);
     masterWrap.appendChild(ageSec);
     pendingScheme.push({ canvas: ageCanvas, type: 'box', data: bpAge, color: '#10b981' });
-
-    // Gender 분포 (Stacked Bar)
-    const genderSec = document.createElement('div');
-    genderSec.className = 'analysis-chart-section analysis-print-page-break';
-    const genderTitle = document.createElement('div');
-    genderTitle.className = 'analysis-chart-title';
-    genderTitle.textContent = 'Gender (by ' + groupLabel + ')';
-    const genderWrap = document.createElement('div');
-    genderWrap.className = 'analysis-chart-wrap';
-    const genderCanvas = document.createElement('canvas');
-    genderCanvas.style.width = '100%'; genderCanvas.style.height = '300px';
-    genderWrap.appendChild(genderCanvas);
-    genderWrap.appendChild(buildSchemeLegend(labels, dilNum));
-    genderSec.append(genderTitle, genderWrap);
-    masterWrap.appendChild(genderSec);
-    const allGenderKeys = new Set();
-    labels.forEach(k => Object.keys(groups[k].gender).forEach(g => allGenderKeys.add(g)));
-    const genderKeys = Array.from(allGenderKeys).sort();
-    const genderData = labels.map(k => ({ label: k, dist: groups[k].gender, total: groups[k].count }));
-    pendingScheme.push({ canvas: genderCanvas, type: 'catDist', data: genderData, categories: genderKeys });
 
     // AIE Experience 분포 (Stacked Bar)
     const aieSec = document.createElement('div');
@@ -2717,11 +2792,14 @@ async function openCombinedAnalysis(targetField) {
     masterWrap.appendChild(noData2);
   }
 
-  body.appendChild(masterWrap);
+  // 새 창의 document에 노드 이전 후 렌더링
+  const adoptedWrap = analysisWin.document.adoptNode(masterWrap);
+  body.innerHTML = '';
+  body.appendChild(adoptedWrap);
   body.scrollTop = 0;
 
-  // Canvas 그리기
-  requestAnimationFrame(() => {
+  // Canvas 그리기 (새 창 context에서)
+  analysisWin.requestAnimationFrame(() => {
     pendingNP.forEach(pc => {
       const pw = pc.canvas.parentElement.clientWidth - 32;
       pc.canvas.width = pw * dpr; pc.canvas.height = 300 * dpr; pc.canvas.style.width = pw + 'px';
@@ -2843,6 +2921,7 @@ function buildChoiceCombinationSection(allLabels, groups, groupIdx, dm, dilNum, 
 
   function renderChoiceCorrelation() {
     chartArea.innerHTML = '';
+    const doc = chartArea.ownerDocument || document;
 
     const groupMap = {};
     selectors.forEach(s => {
@@ -2878,20 +2957,20 @@ function buildChoiceCombinationSection(allLabels, groups, groupIdx, dm, dilNum, 
     });
 
     // 범례
-    const legendDiv = document.createElement('div');
+    const legendDiv = doc.createElement('div');
     legendDiv.style.cssText = 'margin-bottom:8px;padding:8px 12px;background:#f1f5f9;border-radius:6px;border:1px solid #e2e8f0;';
-    const legendTitle = document.createElement('div');
+    const legendTitle = doc.createElement('div');
     legendTitle.style.cssText = 'font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;';
     legendTitle.textContent = '▪ 조합 그룹';
     legendDiv.appendChild(legendTitle);
-    const legendRow = document.createElement('div');
+    const legendRow = doc.createElement('div');
     legendRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;';
     combGroups.forEach((cg, ci) => {
-      const item = document.createElement('div');
+      const item = doc.createElement('div');
       item.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:11px;color:#334155;white-space:nowrap;';
-      const dot = document.createElement('span');
+      const dot = doc.createElement('span');
       dot.style.cssText = 'width:10px;height:10px;border-radius:2px;flex-shrink:0;background:' + colorsArr[ci % colorsArr.length] + ';';
-      const text = document.createElement('span');
+      const text = doc.createElement('span');
       text.innerHTML = '<b>' + escHtml(cg.shortLabel) + '</b> : ' + escHtml(cg.label) + ' (n=' + cg.total + ')';
       item.append(dot, text);
       legendRow.appendChild(item);
@@ -2900,7 +2979,7 @@ function buildChoiceCombinationSection(allLabels, groups, groupIdx, dm, dilNum, 
     chartArea.appendChild(legendDiv);
 
     // ── 선택 빈도 테이블 ──
-    const tblDiv = document.createElement('div');
+    const tblDiv = doc.createElement('div');
     tblDiv.className = 'analysis-summary';
     let tbl = '<table><thead><tr><th>그룹</th><th>구성</th><th>① 선택</th><th>② 선택</th><th>기타</th><th>합계</th><th>① 비율</th><th>② 비율</th><th>N2 평균</th><th>P% 평균</th></tr></thead><tbody>';
     let totC1=0, totC2=0, totEtc=0, totAll=0;
@@ -2928,14 +3007,14 @@ function buildChoiceCombinationSection(allLabels, groups, groupIdx, dm, dilNum, 
     chartArea.appendChild(tblDiv);
 
     // ── 선택 빈도 시각화 (stacked bar) ──
-    const choiceBarWrap = document.createElement('div');
+    const choiceBarWrap = doc.createElement('div');
     choiceBarWrap.className = 'analysis-chart-wrap';
     choiceBarWrap.style.marginTop = '8px';
-    const choiceBarCanvas = document.createElement('canvas');
+    const choiceBarCanvas = doc.createElement('canvas');
     choiceBarCanvas.style.width = '100%'; choiceBarCanvas.style.height = '320px';
     choiceBarWrap.appendChild(choiceBarCanvas);
 
-    const cLegendDiv = document.createElement('div');
+    const cLegendDiv = doc.createElement('div');
     cLegendDiv.style.cssText = 'margin-top:10px;display:flex;gap:20px;font-size:12px;font-weight:600;color:#334155;';
     cLegendDiv.innerHTML = '<span><span style="display:inline-block;width:14px;height:14px;background:#3b82f6;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>①</span>' +
       '<span><span style="display:inline-block;width:14px;height:14px;background:#f59e0b;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>②</span>' +
@@ -2945,7 +3024,7 @@ function buildChoiceCombinationSection(allLabels, groups, groupIdx, dm, dilNum, 
 
     // ── 카이제곱 검정 (선택 × 그룹 독립성) ──
     if (combGroups.length >= 2) {
-      const corrTitle = document.createElement('div');
+      const corrTitle = doc.createElement('div');
       corrTitle.className = 'analysis-chart-title';
       corrTitle.style.marginTop = '16px';
       corrTitle.textContent = '선택(①/②) × Group 독립성 검정 (Chi-Square)';
@@ -2993,7 +3072,7 @@ function buildChoiceCombinationSection(allLabels, groups, groupIdx, dm, dilNum, 
       const sigColor = pValueChi < 0.05 ? '#dc2626' : '#64748b';
       const vStrength = cramersV < 0.1 ? '거의 없음' : cramersV < 0.3 ? '약한' : cramersV < 0.5 ? '보통' : '강한';
 
-      const corrDiv = document.createElement('div');
+      const corrDiv = doc.createElement('div');
       corrDiv.className = 'analysis-summary';
       corrDiv.innerHTML = '<table><thead><tr><th>측정</th><th>값</th><th>해석</th></tr></thead><tbody>' +
         '<tr><td style="font-weight:600;color:#1e293b">χ² (카이제곱)</td>' +
@@ -3026,6 +3105,538 @@ function buildChoiceCombinationSection(allLabels, groups, groupIdx, dm, dilNum, 
   }
 
   analyzeBtn.addEventListener('click', renderChoiceCorrelation);
+  return wrapper;
+}
+
+// ── Grade × Group Combination 상관 분석 ──
+function buildGradeCombinationSection(allLabels, groups, groupIdx, allData) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'analysis-chart-section';
+  wrapper.style.cssText = 'border:2px solid #e2e8f0;border-radius:8px;padding:14px;margin-top:8px;background:#fafbfc;';
+
+  const titleText = document.createElement('div');
+  titleText.className = 'analysis-chart-title';
+  titleText.style.marginBottom = '10px';
+  titleText.textContent = 'Grade × Group 상관관계 분석';
+  wrapper.appendChild(titleText);
+
+  const groupUI = document.createElement('div');
+  groupUI.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:12px;padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;';
+
+  const instrText = document.createElement('div');
+  instrText.style.cssText = 'font-size:11px;color:#64748b;margin-bottom:4px;';
+  instrText.textContent = '각 Code에 그룹 번호를 지정하세요. 같은 번호의 Code가 하나로 묶여 Grade와의 상관관계를 분석합니다.';
+  groupUI.appendChild(instrText);
+
+  const selectors = [];
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;justify-content:space-between;';
+  const colorsArr = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+
+  allLabels.forEach((k, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:4px;flex-shrink:0;';
+    const label = document.createElement('span');
+    label.style.cssText = 'font-size:11px;font-weight:700;color:#94a3b8;white-space:nowrap;text-decoration:line-through;';
+    label.textContent = k;
+    const sel = document.createElement('select');
+    sel.style.cssText = 'padding:3px 6px;font-size:12px;border:1px solid #cbd5e1;border-radius:4px;cursor:pointer;font-weight:600;';
+    sel.dataset.code = k;
+    for (let g = 1; g <= allLabels.length; g++) {
+      const opt = document.createElement('option');
+      opt.value = g; opt.textContent = 'G' + g;
+      sel.appendChild(opt);
+    }
+    const excludeOpt = document.createElement('option');
+    excludeOpt.value = 'exclude'; excludeOpt.textContent = '제외'; excludeOpt.selected = true;
+    sel.appendChild(excludeOpt);
+    const colorDot = document.createElement('span');
+    colorDot.style.cssText = 'width:12px;height:12px;border-radius:3px;flex-shrink:0;background:#cbd5e1;';
+    sel.addEventListener('change', () => {
+      if (sel.value === 'exclude') {
+        colorDot.style.background = '#cbd5e1';
+        label.style.textDecoration = 'line-through'; label.style.color = '#94a3b8';
+      } else {
+        const gIdx = parseInt(sel.value) - 1;
+        colorDot.style.background = colorsArr[gIdx % colorsArr.length];
+        label.style.textDecoration = 'none'; label.style.color = '#1e293b';
+      }
+    });
+    row.append(colorDot, label, sel);
+    grid.appendChild(row);
+    selectors.push(sel);
+  });
+  groupUI.appendChild(grid);
+
+  const presetRow = document.createElement('div');
+  presetRow.style.cssText = 'display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;';
+  const presetAll = document.createElement('button');
+  presetAll.className = 'btn btn-gray'; presetAll.style.cssText = 'padding:3px 10px;font-size:11px;';
+  presetAll.textContent = '모두 별도';
+  presetAll.onclick = () => { selectors.forEach((s,i) => { s.value = i+1; s.dispatchEvent(new Event('change')); }); };
+  const presetOne = document.createElement('button');
+  presetOne.className = 'btn btn-gray'; presetOne.style.cssText = 'padding:3px 10px;font-size:11px;';
+  presetOne.textContent = '모두 하나';
+  presetOne.onclick = () => { selectors.forEach(s => { s.value = 1; s.dispatchEvent(new Event('change')); }); };
+  const analyzeBtn = document.createElement('button');
+  analyzeBtn.className = 'btn btn-blue'; analyzeBtn.style.cssText = 'padding:5px 16px;font-size:12px;margin-left:auto;';
+  analyzeBtn.textContent = '선택 상관 분석';
+  presetRow.append(presetAll, presetOne, analyzeBtn);
+  groupUI.appendChild(presetRow);
+  wrapper.appendChild(groupUI);
+
+  const chartArea = document.createElement('div');
+  chartArea.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+  wrapper.appendChild(chartArea);
+
+  const dpr = window.devicePixelRatio || 1;
+
+  function renderGradeCorrelation() {
+    chartArea.innerHTML = '';
+    const doc = chartArea.ownerDocument || document;
+    const groupMap = {};
+    selectors.forEach(s => {
+      if (s.value === 'exclude') return;
+      const gNum = parseInt(s.value);
+      const code = s.dataset.code;
+      if (!groupMap[gNum]) groupMap[gNum] = [];
+      groupMap[gNum].push(code);
+    });
+    const sortedGroupNums = Object.keys(groupMap).map(Number).sort((a,b)=>a-b);
+    if (sortedGroupNums.length === 0) return;
+
+    // Collect grade distribution per combined group
+    const allGradeKeys = new Set();
+    const combGroups = sortedGroupNums.map(gNum => {
+      const members = groupMap[gNum];
+      const label = members.length === 1 ? members[0] : members.join('+');
+      const shortLabel = 'G' + gNum;
+      const gradeDist = {};
+      let total = 0;
+      allData.forEach(r => {
+        const key = getCellVal(r, groupIdx);
+        if (!key || !members.includes(key)) return;
+        const grade = (r.F || '').trim();
+        if (!grade) return;
+        gradeDist[grade] = (gradeDist[grade] || 0) + 1;
+        allGradeKeys.add(grade);
+        total++;
+      });
+      return { label, shortLabel, members, gradeDist, total };
+    });
+
+    const gradeKeys = Array.from(allGradeKeys).sort();
+    if (gradeKeys.length === 0) { chartArea.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:12px;">Grade 데이터가 없습니다.</div>'; return; }
+
+    // Legend
+    const legendDiv = doc.createElement('div');
+    legendDiv.style.cssText = 'margin-bottom:8px;padding:8px 12px;background:#f1f5f9;border-radius:6px;border:1px solid #e2e8f0;';
+    const legendTitle = doc.createElement('div');
+    legendTitle.style.cssText = 'font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;';
+    legendTitle.textContent = '▪ 조합 그룹';
+    legendDiv.appendChild(legendTitle);
+    const legendRow = doc.createElement('div');
+    legendRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;';
+    combGroups.forEach((cg, ci) => {
+      const item = doc.createElement('div');
+      item.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:11px;color:#334155;white-space:nowrap;';
+      const dot = doc.createElement('span');
+      dot.style.cssText = 'width:10px;height:10px;border-radius:2px;flex-shrink:0;background:' + colorsArr[ci % colorsArr.length] + ';';
+      const text = doc.createElement('span');
+      text.innerHTML = '<b>' + escHtml(cg.shortLabel) + '</b> : ' + escHtml(cg.label) + ' (n=' + cg.total + ')';
+      item.append(dot, text);
+      legendRow.appendChild(item);
+    });
+    legendDiv.appendChild(legendRow);
+    chartArea.appendChild(legendDiv);
+
+    // Frequency table
+    const tblDiv = doc.createElement('div');
+    tblDiv.className = 'analysis-summary';
+    let tbl = '<table><thead><tr><th>그룹</th><th>구성</th>';
+    gradeKeys.forEach(gk => { tbl += '<th>' + escHtml(gk) + '</th>'; });
+    tbl += '<th>합계</th>';
+    gradeKeys.forEach(gk => { tbl += '<th>' + escHtml(gk) + ' %</th>'; });
+    tbl += '</tr></thead><tbody>';
+    const colTotals = {};
+    gradeKeys.forEach(gk => { colTotals[gk] = 0; });
+    let grandTotal = 0;
+    combGroups.forEach(cg => {
+      grandTotal += cg.total;
+      tbl += '<tr><td style="font-weight:700">' + escHtml(cg.shortLabel) + '</td>';
+      tbl += '<td style="font-size:11px;color:#64748b">' + escHtml(cg.label) + '</td>';
+      gradeKeys.forEach(gk => {
+        const cnt = cg.gradeDist[gk] || 0;
+        colTotals[gk] += cnt;
+        tbl += '<td>' + cnt + '</td>';
+      });
+      tbl += '<td style="font-weight:600">' + cg.total + '</td>';
+      gradeKeys.forEach(gk => {
+        const cnt = cg.gradeDist[gk] || 0;
+        tbl += '<td style="color:#3b82f6;font-weight:600">' + (cg.total ? (cnt/cg.total*100).toFixed(1) : '0.0') + '%</td>';
+      });
+      tbl += '</tr>';
+    });
+    tbl += '<tr style="background:#f1f5f9;font-weight:600"><td colspan="2">전체</td>';
+    gradeKeys.forEach(gk => { tbl += '<td>' + colTotals[gk] + '</td>'; });
+    tbl += '<td>' + grandTotal + '</td>';
+    gradeKeys.forEach(gk => { tbl += '<td>' + (grandTotal ? (colTotals[gk]/grandTotal*100).toFixed(1) : '0.0') + '%</td>'; });
+    tbl += '</tr></tbody></table>';
+    tblDiv.innerHTML = tbl;
+    chartArea.appendChild(tblDiv);
+
+    // Stacked bar chart
+    const barWrap = doc.createElement('div');
+    barWrap.className = 'analysis-chart-wrap';
+    barWrap.style.marginTop = '8px';
+    const barCanvas = doc.createElement('canvas');
+    barCanvas.style.width = '100%'; barCanvas.style.height = '320px';
+    barWrap.appendChild(barCanvas);
+    chartArea.appendChild(barWrap);
+
+    // Chi-square test (Grade × Group independence)
+    if (combGroups.length >= 2 && gradeKeys.length >= 2) {
+      const corrTitle = doc.createElement('div');
+      corrTitle.className = 'analysis-chart-title';
+      corrTitle.style.marginTop = '16px';
+      corrTitle.textContent = 'Grade × Group 독립성 검정 (Chi-Square)';
+      chartArea.appendChild(corrTitle);
+
+      const observed = combGroups.map(cg => gradeKeys.map(gk => cg.gradeDist[gk] || 0));
+      const rowTotals = observed.map(row => row.reduce((a,b)=>a+b,0));
+      const nCols = gradeKeys.length;
+      const colTots = new Array(nCols).fill(0);
+      observed.forEach(row => { row.forEach((v,ci) => colTots[ci] += v); });
+      const grand = rowTotals.reduce((a,b)=>a+b,0);
+
+      let chiSq = 0;
+      if (grand > 0) {
+        observed.forEach((row, ri) => {
+          row.forEach((obs, ci) => {
+            const exp = (rowTotals[ri] * colTots[ci]) / grand;
+            if (exp > 0) chiSq += ((obs - exp) ** 2) / exp;
+          });
+        });
+      }
+
+      const dfChi = (combGroups.length - 1) * (nCols - 1);
+      const minDim = Math.min(combGroups.length, nCols) - 1;
+      const cramersV = (grand > 0 && minDim > 0) ? Math.sqrt(chiSq / (grand * minDim)) : 0;
+
+      let pValueChi = 1;
+      if (dfChi > 0 && chiSq > 0) {
+        const a = dfChi / 2, x = chiSq / 2;
+        let sum = 0, term = 1/a;
+        for (let i = 0; i < 200; i++) {
+          sum += term;
+          term *= x / (a + i + 1);
+          if (Math.abs(term) < 1e-12) break;
+        }
+        const lowerGamma = Math.exp(-x + a * Math.log(x) - _lnGamma(a)) * sum;
+        pValueChi = Math.max(0, Math.min(1, 1 - lowerGamma));
+      }
+
+      const sigLabel = pValueChi < 0.001 ? '***' : pValueChi < 0.01 ? '**' : pValueChi < 0.05 ? '*' : 'n.s.';
+      const sigColor = pValueChi < 0.05 ? '#dc2626' : '#64748b';
+      const vStrength = cramersV < 0.1 ? '거의 없음' : cramersV < 0.3 ? '약한' : cramersV < 0.5 ? '보통' : '강한';
+
+      const corrDiv = doc.createElement('div');
+      corrDiv.className = 'analysis-summary';
+      corrDiv.innerHTML = '<table><thead><tr><th>측정</th><th>값</th><th>해석</th></tr></thead><tbody>' +
+        '<tr><td style="font-weight:600;color:#1e293b">χ² (카이제곱)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:#3b82f6">' + chiSq.toFixed(4) + '</td>' +
+        '<td style="color:#475569">df = ' + dfChi + '</td></tr>' +
+        '<tr><td style="font-weight:600;color:#1e293b">p-value</td>' +
+        '<td style="font-size:16px;font-weight:700;color:' + sigColor + '">' + _formatPValue(pValueChi) + ' <span style="font-size:13px;">' + sigLabel + '</span></td>' +
+        '<td style="color:#475569">' + (pValueChi < 0.05 ? '그룹과 Grade 간 유의한 관련성 있음 (α=0.05)' : '그룹과 Grade 간 유의한 관련성 없음') + '</td></tr>' +
+        '<tr><td style="font-weight:600;color:#1e293b">Cramér\'s V</td>' +
+        '<td style="font-size:16px;font-weight:700;color:' + (cramersV >= 0.1 ? '#8b5cf6' : '#64748b') + '">' + cramersV.toFixed(4) + '</td>' +
+        '<td style="color:#475569">효과 크기: ' + vStrength + '</td></tr>' +
+        '<tr><td style="font-weight:600;color:#1e293b">N (총 응답)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:#64748b">' + grand + '</td>' +
+        '<td style="color:#475569">' + combGroups.length + '개 그룹 × ' + gradeKeys.length + '개 Grade</td></tr>' +
+        '</tbody></table>' +
+        '<div style="font-size:11px;color:#94a3b8;padding:6px 10px;border-top:1px solid #e2e8f0;">유의수준: *** p&lt;0.001, ** p&lt;0.01, * p&lt;0.05, n.s. 유의하지 않음</div>';
+      chartArea.appendChild(corrDiv);
+    }
+
+    // Canvas rendering - stacked bar for grade distribution
+    setTimeout(() => {
+      let pw = barWrap.clientWidth - 32;
+      if (pw <= 0) pw = 600;
+      barCanvas.width = pw * dpr; barCanvas.height = 320 * dpr;
+      barCanvas.style.width = pw + 'px'; barCanvas.style.height = '320px';
+      drawCatDistChart(barCanvas, combGroups.map(cg => ({ label: cg.shortLabel, dist: cg.gradeDist, total: cg.total })), gradeKeys, dpr);
+    }, 100);
+  }
+
+  analyzeBtn.addEventListener('click', renderGradeCorrelation);
+  return wrapper;
+}
+
+// ── Gender × Group Combination 상관 분석 ──
+function buildGenderCombinationSection(allLabels, groups, groupIdx, allData) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'analysis-chart-section';
+  wrapper.style.cssText = 'border:2px solid #e2e8f0;border-radius:8px;padding:14px;margin-top:8px;background:#fafbfc;';
+
+  const titleText = document.createElement('div');
+  titleText.className = 'analysis-chart-title';
+  titleText.style.marginBottom = '10px';
+  titleText.textContent = 'Gender × Group 상관관계 분석';
+  wrapper.appendChild(titleText);
+
+  const groupUI = document.createElement('div');
+  groupUI.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:12px;padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;';
+
+  const instrText = document.createElement('div');
+  instrText.style.cssText = 'font-size:11px;color:#64748b;margin-bottom:4px;';
+  instrText.textContent = '각 Code에 그룹 번호를 지정하세요. 같은 번호의 Code가 하나로 묶여 Gender와의 상관관계를 분석합니다.';
+  groupUI.appendChild(instrText);
+
+  const selectors = [];
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;justify-content:space-between;';
+  const colorsArr = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+
+  allLabels.forEach((k, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:4px;flex-shrink:0;';
+    const label = document.createElement('span');
+    label.style.cssText = 'font-size:11px;font-weight:700;color:#94a3b8;white-space:nowrap;text-decoration:line-through;';
+    label.textContent = k;
+    const sel = document.createElement('select');
+    sel.style.cssText = 'padding:3px 6px;font-size:12px;border:1px solid #cbd5e1;border-radius:4px;cursor:pointer;font-weight:600;';
+    sel.dataset.code = k;
+    for (let g = 1; g <= allLabels.length; g++) {
+      const opt = document.createElement('option');
+      opt.value = g; opt.textContent = 'G' + g;
+      sel.appendChild(opt);
+    }
+    const excludeOpt = document.createElement('option');
+    excludeOpt.value = 'exclude'; excludeOpt.textContent = '제외'; excludeOpt.selected = true;
+    sel.appendChild(excludeOpt);
+    const colorDot = document.createElement('span');
+    colorDot.style.cssText = 'width:12px;height:12px;border-radius:3px;flex-shrink:0;background:#cbd5e1;';
+    sel.addEventListener('change', () => {
+      if (sel.value === 'exclude') {
+        colorDot.style.background = '#cbd5e1';
+        label.style.textDecoration = 'line-through'; label.style.color = '#94a3b8';
+      } else {
+        const gIdx = parseInt(sel.value) - 1;
+        colorDot.style.background = colorsArr[gIdx % colorsArr.length];
+        label.style.textDecoration = 'none'; label.style.color = '#1e293b';
+      }
+    });
+    row.append(colorDot, label, sel);
+    grid.appendChild(row);
+    selectors.push(sel);
+  });
+  groupUI.appendChild(grid);
+
+  const presetRow = document.createElement('div');
+  presetRow.style.cssText = 'display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;';
+  const presetAll = document.createElement('button');
+  presetAll.className = 'btn btn-gray'; presetAll.style.cssText = 'padding:3px 10px;font-size:11px;';
+  presetAll.textContent = '모두 별도';
+  presetAll.onclick = () => { selectors.forEach((s,i) => { s.value = i+1; s.dispatchEvent(new Event('change')); }); };
+  const presetOne = document.createElement('button');
+  presetOne.className = 'btn btn-gray'; presetOne.style.cssText = 'padding:3px 10px;font-size:11px;';
+  presetOne.textContent = '모두 하나';
+  presetOne.onclick = () => { selectors.forEach(s => { s.value = 1; s.dispatchEvent(new Event('change')); }); };
+  const analyzeBtn = document.createElement('button');
+  analyzeBtn.className = 'btn btn-blue'; analyzeBtn.style.cssText = 'padding:5px 16px;font-size:12px;margin-left:auto;';
+  analyzeBtn.textContent = '선택 상관 분석';
+  presetRow.append(presetAll, presetOne, analyzeBtn);
+  groupUI.appendChild(presetRow);
+  wrapper.appendChild(groupUI);
+
+  const chartArea = document.createElement('div');
+  chartArea.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+  wrapper.appendChild(chartArea);
+
+  const dpr = window.devicePixelRatio || 1;
+
+  function renderGenderCorrelation() {
+    chartArea.innerHTML = '';
+    const doc = chartArea.ownerDocument || document;
+    const groupMap = {};
+    selectors.forEach(s => {
+      if (s.value === 'exclude') return;
+      const gNum = parseInt(s.value);
+      const code = s.dataset.code;
+      if (!groupMap[gNum]) groupMap[gNum] = [];
+      groupMap[gNum].push(code);
+    });
+    const sortedGroupNums = Object.keys(groupMap).map(Number).sort((a,b)=>a-b);
+    if (sortedGroupNums.length === 0) return;
+
+    // Collect gender distribution per combined group
+    const allGenderKeys = new Set();
+    const combGroups = sortedGroupNums.map(gNum => {
+      const members = groupMap[gNum];
+      const label = members.length === 1 ? members[0] : members.join('+');
+      const shortLabel = 'G' + gNum;
+      const genderDist = {};
+      let total = 0;
+      allData.forEach(r => {
+        const key = getCellVal(r, groupIdx);
+        if (!key || !members.includes(key)) return;
+        const gender = (r.G || '').trim();
+        if (!gender) return;
+        genderDist[gender] = (genderDist[gender] || 0) + 1;
+        allGenderKeys.add(gender);
+        total++;
+      });
+      return { label, shortLabel, members, genderDist, total };
+    });
+
+    const genderKeys = Array.from(allGenderKeys).sort();
+    if (genderKeys.length === 0) { chartArea.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:12px;">Gender 데이터가 없습니다.</div>'; return; }
+
+    // Legend
+    const legendDiv = doc.createElement('div');
+    legendDiv.style.cssText = 'margin-bottom:8px;padding:8px 12px;background:#f1f5f9;border-radius:6px;border:1px solid #e2e8f0;';
+    const legendTitle = doc.createElement('div');
+    legendTitle.style.cssText = 'font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;';
+    legendTitle.textContent = '▪ 조합 그룹';
+    legendDiv.appendChild(legendTitle);
+    const legendRow = doc.createElement('div');
+    legendRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;';
+    combGroups.forEach((cg, ci) => {
+      const item = doc.createElement('div');
+      item.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:11px;color:#334155;white-space:nowrap;';
+      const dot = doc.createElement('span');
+      dot.style.cssText = 'width:10px;height:10px;border-radius:2px;flex-shrink:0;background:' + colorsArr[ci % colorsArr.length] + ';';
+      const text = doc.createElement('span');
+      text.innerHTML = '<b>' + escHtml(cg.shortLabel) + '</b> : ' + escHtml(cg.label) + ' (n=' + cg.total + ')';
+      item.append(dot, text);
+      legendRow.appendChild(item);
+    });
+    legendDiv.appendChild(legendRow);
+    chartArea.appendChild(legendDiv);
+
+    // Frequency table
+    const tblDiv = doc.createElement('div');
+    tblDiv.className = 'analysis-summary';
+    let tbl = '<table><thead><tr><th>그룹</th><th>구성</th>';
+    genderKeys.forEach(gk => { tbl += '<th>' + escHtml(gk) + '</th>'; });
+    tbl += '<th>합계</th>';
+    genderKeys.forEach(gk => { tbl += '<th>' + escHtml(gk) + ' %</th>'; });
+    tbl += '</tr></thead><tbody>';
+    const colTotals = {};
+    genderKeys.forEach(gk => { colTotals[gk] = 0; });
+    let grandTotal = 0;
+    combGroups.forEach(cg => {
+      grandTotal += cg.total;
+      tbl += '<tr><td style="font-weight:700">' + escHtml(cg.shortLabel) + '</td>';
+      tbl += '<td style="font-size:11px;color:#64748b">' + escHtml(cg.label) + '</td>';
+      genderKeys.forEach(gk => {
+        const cnt = cg.genderDist[gk] || 0;
+        colTotals[gk] += cnt;
+        tbl += '<td>' + cnt + '</td>';
+      });
+      tbl += '<td style="font-weight:600">' + cg.total + '</td>';
+      genderKeys.forEach(gk => {
+        const cnt = cg.genderDist[gk] || 0;
+        tbl += '<td style="color:#3b82f6;font-weight:600">' + (cg.total ? (cnt/cg.total*100).toFixed(1) : '0.0') + '%</td>';
+      });
+      tbl += '</tr>';
+    });
+    tbl += '<tr style="background:#f1f5f9;font-weight:600"><td colspan="2">전체</td>';
+    genderKeys.forEach(gk => { tbl += '<td>' + colTotals[gk] + '</td>'; });
+    tbl += '<td>' + grandTotal + '</td>';
+    genderKeys.forEach(gk => { tbl += '<td>' + (grandTotal ? (colTotals[gk]/grandTotal*100).toFixed(1) : '0.0') + '%</td>'; });
+    tbl += '</tr></tbody></table>';
+    tblDiv.innerHTML = tbl;
+    chartArea.appendChild(tblDiv);
+
+    // Stacked bar chart
+    const barWrap = doc.createElement('div');
+    barWrap.className = 'analysis-chart-wrap';
+    barWrap.style.marginTop = '8px';
+    const barCanvas = doc.createElement('canvas');
+    barCanvas.style.width = '100%'; barCanvas.style.height = '320px';
+    barWrap.appendChild(barCanvas);
+    chartArea.appendChild(barWrap);
+
+    // Chi-square test (Gender × Group independence)
+    if (combGroups.length >= 2 && genderKeys.length >= 2) {
+      const corrTitle = doc.createElement('div');
+      corrTitle.className = 'analysis-chart-title';
+      corrTitle.style.marginTop = '16px';
+      corrTitle.textContent = 'Gender × Group 독립성 검정 (Chi-Square)';
+      chartArea.appendChild(corrTitle);
+
+      const observed = combGroups.map(cg => genderKeys.map(gk => cg.genderDist[gk] || 0));
+      const rowTotals = observed.map(row => row.reduce((a,b)=>a+b,0));
+      const nCols = genderKeys.length;
+      const colTots = new Array(nCols).fill(0);
+      observed.forEach(row => { row.forEach((v,ci) => colTots[ci] += v); });
+      const grand = rowTotals.reduce((a,b)=>a+b,0);
+
+      let chiSq = 0;
+      if (grand > 0) {
+        observed.forEach((row, ri) => {
+          row.forEach((obs, ci) => {
+            const exp = (rowTotals[ri] * colTots[ci]) / grand;
+            if (exp > 0) chiSq += ((obs - exp) ** 2) / exp;
+          });
+        });
+      }
+
+      const dfChi = (combGroups.length - 1) * (nCols - 1);
+      const minDim = Math.min(combGroups.length, nCols) - 1;
+      const cramersV = (grand > 0 && minDim > 0) ? Math.sqrt(chiSq / (grand * minDim)) : 0;
+
+      let pValueChi = 1;
+      if (dfChi > 0 && chiSq > 0) {
+        const a = dfChi / 2, x = chiSq / 2;
+        let sum = 0, term = 1/a;
+        for (let i = 0; i < 200; i++) {
+          sum += term;
+          term *= x / (a + i + 1);
+          if (Math.abs(term) < 1e-12) break;
+        }
+        const lowerGamma = Math.exp(-x + a * Math.log(x) - _lnGamma(a)) * sum;
+        pValueChi = Math.max(0, Math.min(1, 1 - lowerGamma));
+      }
+
+      const sigLabel = pValueChi < 0.001 ? '***' : pValueChi < 0.01 ? '**' : pValueChi < 0.05 ? '*' : 'n.s.';
+      const sigColor = pValueChi < 0.05 ? '#dc2626' : '#64748b';
+      const vStrength = cramersV < 0.1 ? '거의 없음' : cramersV < 0.3 ? '약한' : cramersV < 0.5 ? '보통' : '강한';
+
+      const corrDiv = doc.createElement('div');
+      corrDiv.className = 'analysis-summary';
+      corrDiv.innerHTML = '<table><thead><tr><th>측정</th><th>값</th><th>해석</th></tr></thead><tbody>' +
+        '<tr><td style="font-weight:600;color:#1e293b">χ² (카이제곱)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:#3b82f6">' + chiSq.toFixed(4) + '</td>' +
+        '<td style="color:#475569">df = ' + dfChi + '</td></tr>' +
+        '<tr><td style="font-weight:600;color:#1e293b">p-value</td>' +
+        '<td style="font-size:16px;font-weight:700;color:' + sigColor + '">' + _formatPValue(pValueChi) + ' <span style="font-size:13px;">' + sigLabel + '</span></td>' +
+        '<td style="color:#475569">' + (pValueChi < 0.05 ? '그룹과 Gender 간 유의한 관련성 있음 (α=0.05)' : '그룹과 Gender 간 유의한 관련성 없음') + '</td></tr>' +
+        '<tr><td style="font-weight:600;color:#1e293b">Cramér\'s V</td>' +
+        '<td style="font-size:16px;font-weight:700;color:' + (cramersV >= 0.1 ? '#8b5cf6' : '#64748b') + '">' + cramersV.toFixed(4) + '</td>' +
+        '<td style="color:#475569">효과 크기: ' + vStrength + '</td></tr>' +
+        '<tr><td style="font-weight:600;color:#1e293b">N (총 응답)</td>' +
+        '<td style="font-size:16px;font-weight:700;color:#64748b">' + grand + '</td>' +
+        '<td style="color:#475569">' + combGroups.length + '개 그룹 × ' + genderKeys.length + '개 Gender</td></tr>' +
+        '</tbody></table>' +
+        '<div style="font-size:11px;color:#94a3b8;padding:6px 10px;border-top:1px solid #e2e8f0;">유의수준: *** p&lt;0.001, ** p&lt;0.01, * p&lt;0.05, n.s. 유의하지 않음</div>';
+      chartArea.appendChild(corrDiv);
+    }
+
+    // Canvas rendering - stacked bar for gender distribution
+    setTimeout(() => {
+      let pw = barWrap.clientWidth - 32;
+      if (pw <= 0) pw = 600;
+      barCanvas.width = pw * dpr; barCanvas.height = 320 * dpr;
+      barCanvas.style.width = pw + 'px'; barCanvas.style.height = '320px';
+      drawCatDistChart(barCanvas, combGroups.map(cg => ({ label: cg.shortLabel, dist: cg.genderDist, total: cg.total })), genderKeys, dpr);
+    }, 100);
+  }
+
+  analyzeBtn.addEventListener('click', renderGenderCorrelation);
   return wrapper;
 }
 
@@ -3861,6 +4472,7 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
 
   function renderCombCharts() {
     chartArea.innerHTML = '';
+    const doc = chartArea.ownerDocument || document;
 
     const groupMap = {};
     selectors.forEach(s => {
@@ -3885,20 +4497,20 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
     if (combGroups.length === 0) return;
 
     const colorsArr2 = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
-    const legendDiv = document.createElement('div');
+    const legendDiv = doc.createElement('div');
     legendDiv.style.cssText = 'margin-bottom:8px;padding:8px 12px;background:#f1f5f9;border-radius:6px;border:1px solid #e2e8f0;';
-    const legendTitle = document.createElement('div');
+    const legendTitle = doc.createElement('div');
     legendTitle.style.cssText = 'font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;';
     legendTitle.textContent = '▪ 조합 그룹';
     legendDiv.appendChild(legendTitle);
-    const legendRow = document.createElement('div');
+    const legendRow = doc.createElement('div');
     legendRow.style.cssText = 'display:flex;flex-wrap:nowrap;gap:4px;justify-content:space-between;';
     combGroups.forEach((cg, ci) => {
-      const item = document.createElement('div');
+      const item = doc.createElement('div');
       item.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:11px;color:#334155;white-space:nowrap;flex-shrink:0;';
-      const dot = document.createElement('span');
+      const dot = doc.createElement('span');
       dot.style.cssText = 'width:10px;height:10px;border-radius:2px;flex-shrink:0;background:' + colorsArr2[ci % colorsArr2.length] + ';';
-      const text = document.createElement('span');
+      const text = doc.createElement('span');
       text.innerHTML = '<b>' + escHtml(cg.shortLabel) + '</b> : ' + escHtml(cg.label) + ' (n=' + cg.values.length + ')';
       item.append(dot, text);
       legendRow.appendChild(item);
@@ -3911,26 +4523,26 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
       return bs ? { label: cg.shortLabel, ...bs } : { label: cg.shortLabel, min:0,q1:0,med:0,q3:0,max:0,avg:0,n:0 };
     });
 
-    const bWrap = document.createElement('div');
+    const bWrap = doc.createElement('div');
     bWrap.className = 'analysis-chart-wrap';
-    const bCanvas = document.createElement('canvas');
+    const bCanvas = doc.createElement('canvas');
     bCanvas.style.width = '100%'; bCanvas.style.height = '300px';
     bWrap.appendChild(bCanvas);
     chartArea.appendChild(bWrap);
 
-    const dTitle = document.createElement('div');
+    const dTitle = doc.createElement('div');
     dTitle.className = 'analysis-chart-title';
     dTitle.textContent = scoreLabel + ' Score 분포 (by Group Combination)';
     chartArea.appendChild(dTitle);
 
-    const dWrap = document.createElement('div');
+    const dWrap = doc.createElement('div');
     dWrap.className = 'analysis-chart-wrap';
-    const dCanvas = document.createElement('canvas');
+    const dCanvas = doc.createElement('canvas');
     dCanvas.style.width = '100%'; dCanvas.style.height = '300px';
     dWrap.appendChild(dCanvas);
     chartArea.appendChild(dWrap);
 
-    const sumDiv = document.createElement('div');
+    const sumDiv = doc.createElement('div');
     sumDiv.className = 'analysis-summary';
     let tbl = '<table><thead><tr><th>그룹</th><th>구성</th><th>N</th><th>평균</th><th>중앙값</th><th>표준편차</th><th>최솟값</th><th>최댓값</th></tr></thead><tbody>';
     combGroups.forEach((cg, ci) => {
@@ -3950,7 +4562,7 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
 
     // 상관관계 분석
     if (combGroups.length >= 2) {
-      const corrTitle = document.createElement('div');
+      const corrTitle = doc.createElement('div');
       corrTitle.className = 'analysis-chart-title analysis-print-page-break';
       corrTitle.style.marginTop = '16px';
       corrTitle.textContent = scoreLabel + ' Score × Group 상관관계';
@@ -4018,7 +4630,7 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
       const sigLabelF = pValueF < 0.001 ? '***' : pValueF < 0.01 ? '**' : pValueF < 0.05 ? '*' : 'n.s.';
       const sigColorF = pValueF < 0.05 ? '#dc2626' : '#64748b';
 
-      const corrDiv = document.createElement('div');
+      const corrDiv = doc.createElement('div');
       corrDiv.className = 'analysis-summary';
       const rStrength = Math.abs(corrR) < 0.1 ? '거의 없음' : Math.abs(corrR) < 0.3 ? '약한' : Math.abs(corrR) < 0.5 ? '보통' : Math.abs(corrR) < 0.7 ? '강한' : '매우 강한';
       const rDirection = corrR > 0 ? '양의' : corrR < 0 ? '음의' : '';
@@ -4052,10 +4664,10 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
         '<div style="font-size:11px;color:#94a3b8;padding:6px 10px;border-top:1px solid #e2e8f0;">유의수준: *** p&lt;0.001, ** p&lt;0.01, * p&lt;0.05, n.s. 유의하지 않음</div>';
       chartArea.appendChild(corrDiv);
 
-      const corrChartWrap = document.createElement('div');
+      const corrChartWrap = doc.createElement('div');
       corrChartWrap.className = 'analysis-chart-wrap';
       corrChartWrap.style.marginTop = '8px';
-      const corrCanvas = document.createElement('canvas');
+      const corrCanvas = doc.createElement('canvas');
       corrCanvas.style.width = '100%'; corrCanvas.style.height = '280px';
       corrChartWrap.appendChild(corrCanvas);
       chartArea.appendChild(corrChartWrap);
@@ -4091,16 +4703,6 @@ function buildCombinationSection(scoreLabel, schemeLabels, groups, field, dilNum
   return wrapper;
 }
 
-function printAnalysis() {
-  const style = document.createElement('style');
-  style.id = 'analysis-print-style';
-  style.textContent = '@media print { @page { size:letter portrait; margin:10mm; } }';
-  document.head.appendChild(style);
-  document.body.classList.add('printing-analysis');
-  window.print();
-  document.body.classList.remove('printing-analysis');
-  style.remove();
-}
 
 // ── Code 관리 ──
 let schemeManagerData = [];
@@ -4376,10 +4978,6 @@ window.addEventListener('DOMContentLoaded', () => {
   const dH = document.querySelector('#docsModalOverlay .docs-modal-header');
   const dB = document.querySelector('#docsModalOverlay .docs-modal-box');
   if (dH && dB) makeDraggable(dH, dB);
-  const aH = document.getElementById('analysisHeader');
-  const aB = document.getElementById('analysisBox');
-  if (aH && aB) makeDraggable(aH, aB);
-
   loadData();
 });
 </script>
